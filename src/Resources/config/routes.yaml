@@ -1,0 +1,3 @@
+user_ranking_controllers:
+  resource: '../../Controller/'
+  type: attribute

@@ -1,0 +1,23 @@
+services:
+  # default configuration for services in *this* file
+  _defaults:
+    autowire: true      # Automatically injects dependencies in your services.
+    autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+  UserRankingBundle\AdminMenu: ~
+
+  # 如果确认要使用自动扫描、自动注册，建议尽可能将要扫描的目录路径收缩，不要设置那么大的范围
+  UserRankingBundle\Command\:
+    resource: '../../Command/'
+  UserRankingBundle\Controller\:
+    resource: '../../Controller/'
+  UserRankingBundle\EventSubscriber\:
+    resource: '../../EventSubscriber/'
+  UserRankingBundle\MessageHandler\:
+    resource: '../../MessageHandler/'
+  UserRankingBundle\Procedure\:
+    resource: '../../Procedure/'
+  UserRankingBundle\Repository\:
+    resource: '../../Repository/'
+  UserRankingBundle\Service\:
+    resource: '../../Service/'

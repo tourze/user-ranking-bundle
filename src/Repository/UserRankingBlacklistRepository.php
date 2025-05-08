@@ -4,7 +4,6 @@ namespace UserRankingBundle\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use DoctrineEnhanceBundle\Repository\CommonRepositoryAware;
 use UserRankingBundle\Entity\UserRankingBlacklist;
 use UserRankingBundle\Entity\UserRankingList;
 
@@ -16,7 +15,6 @@ use UserRankingBundle\Entity\UserRankingList;
  */
 class UserRankingBlacklistRepository extends ServiceEntityRepository
 {
-    use CommonRepositoryAware;
 
     public function __construct(ManagerRegistry $registry)
     {

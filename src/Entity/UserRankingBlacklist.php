@@ -2,11 +2,13 @@
 
 namespace UserRankingBundle\Entity;
 
-use AppBundle\Entity\BizUser;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
+use Tourze\DoctrineTimestampBundle\Attribute\CreateTimeColumn;
+use Tourze\DoctrineTimestampBundle\Attribute\UpdateTimeColumn;
 use Tourze\DoctrineTrackBundle\Attribute\TrackColumn;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
@@ -15,8 +17,10 @@ use Tourze\EasyAdmin\Attribute\Action\Deletable;
 use Tourze\EasyAdmin\Attribute\Action\Editable;
 use Tourze\EasyAdmin\Attribute\Action\Listable;
 use Tourze\EasyAdmin\Attribute\Column\BoolColumn;
+use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
 use Tourze\EasyAdmin\Attribute\Column\ListColumn;
 use Tourze\EasyAdmin\Attribute\Field\FormField;
+use Tourze\EasyAdmin\Attribute\Filter\Filterable;
 use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use UserRankingBundle\Repository\UserRankingBlacklistRepository;
 
@@ -99,9 +103,9 @@ class UserRankingBlacklist
     #[Groups(['admin_curd'])]
     #[ListColumn(title: '用户')]
     #[FormField(title: '用户')]
-    #[ORM\ManyToOne(targetEntity: BizUser::class)]
+    #[ORM\ManyToOne(targetEntity: UserInterface::class)]
     #[ORM\JoinColumn(name: 'biz_user_id', nullable: false)]
-    private ?BizUser $bizUser = null;
+    private ?UserInterface $user = null;
 
     #[Groups(['admin_curd'])]
     #[ListColumn(title: '拉黑原因')]
@@ -163,14 +167,14 @@ class UserRankingBlacklist
         return $this;
     }
 
-    public function getBizUser(): ?BizUser
+    public function getUser(): ?UserInterface
     {
-        return $this->bizUser;
+        return $this->user;
     }
 
-    public function setBizUser(?BizUser $bizUser): self
+    public function setUser(?UserInterface $user): self
     {
-        $this->bizUser = $bizUser;
+        $this->user = $user;
 
         return $this;
     }

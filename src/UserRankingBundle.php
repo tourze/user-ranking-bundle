@@ -3,16 +3,9 @@
 namespace UserRankingBundle;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
-use Tourze\BundleDependency\BundleDependencyInterface;
 use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 
 #[AsPermission(title: '用户排行榜')]
-class UserRankingBundle extends Bundle implements BundleDependencyInterface
+class UserRankingBundle extends Bundle
 {
-    public static function getBundleDependencies(): array
-    {
-        return [
-            \AntdCpBundle\AntdCpBundle::class => ['all' => true],
-        ];
-    }
 }

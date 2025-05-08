@@ -19,7 +19,6 @@
     "symfony/http-kernel": "^6.4",
     "symfony/messenger": "^6.4",
     "symfony/security-core": "^6.4",
-    "tourze/bundle-dependency": "0.0.*",
     "tourze/doctrine-indexed-bundle": "0.0.*",
     "tourze/doctrine-snowflake-bundle": "0.1.*",
     "tourze/doctrine-timestamp-bundle": "0.0.*",

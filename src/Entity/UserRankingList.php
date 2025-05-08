@@ -6,7 +6,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use DoctrineEnhanceBundle\Traits\StartEndTimeTrait;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
 use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
@@ -41,42 +40,6 @@ use UserRankingBundle\Repository\UserRankingListRepository;
 #[ORM\Entity(repositoryClass: UserRankingListRepository::class)]
 class UserRankingList implements \Stringable, LockEntity
 {
-    #[Filterable]
-    #[IndexColumn]
-    #[ListColumn(order: 98, sorter: true)]
-    #[ExportColumn]
-    #[CreateTimeColumn]
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '创建时间'])]
-    private ?\DateTimeInterface $createTime = null;
-
-    #[UpdateTimeColumn]
-    #[ListColumn(order: 99, sorter: true)]
-    #[Filterable]
-    #[ExportColumn]
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '更新时间'])]
-    private ?\DateTimeInterface $updateTime = null;
-
-    public function setCreateTime(?\DateTimeInterface $createdAt): void
-    {
-        $this->createTime = $createdAt;
-    }
-
-    public function getCreateTime(): ?\DateTimeInterface
-    {
-        return $this->createTime;
-    }
-
-    public function setUpdateTime(?\DateTimeInterface $updateTime): void
-    {
-        $this->updateTime = $updateTime;
-    }
-
-    public function getUpdateTime(): ?\DateTimeInterface
-    {
-        return $this->updateTime;
-    }
-    use StartEndTimeTrait;
-
     #[ExportColumn]
     #[ListColumn(order: -1, sorter: true)]
     #[ORM\Id]
@@ -84,22 +47,6 @@ class UserRankingList implements \Stringable, LockEntity
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
     #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
     private ?string $id = null;
-
-    #[CreatedByColumn]
-    #[ORM\Column(nullable: true, options: ['comment' => '创建人'])]
-    private ?string $createdBy = null;
-
-    #[UpdatedByColumn]
-    #[ORM\Column(nullable: true, options: ['comment' => '更新人'])]
-    private ?string $updatedBy = null;
-
-    #[BoolColumn]
-    #[IndexColumn]
-    #[TrackColumn]
-    #[ORM\Column(type: Types::BOOLEAN, nullable: true, options: ['comment' => '有效', 'default' => 0])]
-    #[ListColumn(order: 97)]
-    #[FormField(order: 97)]
-    private ?bool $valid = false;
 
     #[Groups(['admin_curd', 'restful_read'])]
     #[ListColumn]
@@ -127,8 +74,20 @@ class UserRankingList implements \Stringable, LockEntity
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true, options: ['comment' => 'LOGO地址'])]
     private ?string $logoUrl = null;
 
+    #[IndexColumn]
+    #[ListColumn]
+    #[FormField(span: 10)]
+    #[ORM\Column(name: 'start_time', type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '开始时间'])]
+    private ?\DateTimeInterface $startTime = null;
+
+    #[IndexColumn]
+    #[ListColumn]
+    #[FormField(span: 14)]
+    #[ORM\Column(name: 'end_time', type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '结束时间'])]
+    private ?\DateTimeInterface $endTime = null;
+
     #[CurdAction(label: '用户列表')]
-    #[ORM\OneToMany(mappedBy: 'list', targetEntity: UserRankingItem::class, orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: UserRankingItem::class, mappedBy: 'list', orphanRemoval: true)]
     private Collection $items;
 
     /**
@@ -159,6 +118,37 @@ class UserRankingList implements \Stringable, LockEntity
     #[ListColumn(title: '最后刷新时间')]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '最后刷新时间'])]
     private ?\DateTimeImmutable $refreshTime = null;
+
+    #[BoolColumn]
+    #[IndexColumn]
+    #[TrackColumn]
+    #[ORM\Column(type: Types::BOOLEAN, nullable: true, options: ['comment' => '有效', 'default' => 0])]
+    #[ListColumn(order: 97)]
+    #[FormField(order: 97)]
+    private ?bool $valid = false;
+
+    #[CreatedByColumn]
+    #[ORM\Column(nullable: true, options: ['comment' => '创建人'])]
+    private ?string $createdBy = null;
+
+    #[UpdatedByColumn]
+    #[ORM\Column(nullable: true, options: ['comment' => '更新人'])]
+    private ?string $updatedBy = null;
+
+    #[Filterable]
+    #[IndexColumn]
+    #[ListColumn(order: 98, sorter: true)]
+    #[ExportColumn]
+    #[CreateTimeColumn]
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '创建时间'])]
+    private ?\DateTimeInterface $createTime = null;
+
+    #[UpdateTimeColumn]
+    #[ListColumn(order: 99, sorter: true)]
+    #[Filterable]
+    #[ExportColumn]
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '更新时间'])]
+    private ?\DateTimeInterface $updateTime = null;
 
     public function __construct()
     {
@@ -374,6 +364,46 @@ class UserRankingList implements \Stringable, LockEntity
         $this->refreshTime = new \DateTimeImmutable();
 
         return $this;
+    }
+
+    public function getStartTime(): ?\DateTimeInterface
+    {
+        return $this->startTime;
+    }
+
+    public function setStartTime(?\DateTimeInterface $startTime): void
+    {
+        $this->startTime = $startTime;
+    }
+
+    public function getEndTime(): ?\DateTimeInterface
+    {
+        return $this->endTime;
+    }
+
+    public function setEndTime(?\DateTimeInterface $endTime): void
+    {
+        $this->endTime = $endTime;
+    }
+
+    public function setCreateTime(?\DateTimeInterface $createdAt): void
+    {
+        $this->createTime = $createdAt;
+    }
+
+    public function getCreateTime(): ?\DateTimeInterface
+    {
+        return $this->createTime;
+    }
+
+    public function setUpdateTime(?\DateTimeInterface $updateTime): void
+    {
+        $this->updateTime = $updateTime;
+    }
+
+    public function getUpdateTime(): ?\DateTimeInterface
+    {
+        return $this->updateTime;
     }
 
     public function isInValidPeriod(\DateTimeInterface $now): bool

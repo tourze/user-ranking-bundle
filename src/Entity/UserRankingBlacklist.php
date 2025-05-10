@@ -4,7 +4,6 @@ namespace UserRankingBundle\Entity;
 
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
 use Tourze\DoctrineTimestampBundle\Attribute\CreateTimeColumn;
@@ -31,7 +30,7 @@ use UserRankingBundle\Repository\UserRankingBlacklistRepository;
 #[Creatable]
 #[ORM\Table(name: 'user_ranking_blacklist', options: ['comment' => '排行榜黑名单'])]
 #[ORM\Entity(repositoryClass: UserRankingBlacklistRepository::class)]
-#[ORM\UniqueConstraint(name: 'user_ranking_blacklist_uniq_1', columns: ['list_id', 'biz_user_id'])]
+#[ORM\UniqueConstraint(name: 'user_ranking_blacklist_uniq_1', columns: ['list_id', 'user_id'])]
 class UserRankingBlacklist
 {
     #[ListColumn(order: -1)]
@@ -101,11 +100,10 @@ class UserRankingBlacklist
     private ?UserRankingList $list = null;
 
     #[Groups(['admin_curd'])]
-    #[ListColumn(title: '用户')]
-    #[FormField(title: '用户')]
-    #[ORM\ManyToOne(targetEntity: UserInterface::class)]
-    #[ORM\JoinColumn(name: 'biz_user_id', nullable: false)]
-    private ?UserInterface $user = null;
+    #[ListColumn(title: '用户ID')]
+    #[FormField(title: '用户ID')]
+    #[ORM\Column(name: 'user_id', type: Types::STRING, length: 64, options: ['comment' => '用户ID'])]
+    private ?string $userId = null;
 
     #[Groups(['admin_curd'])]
     #[ListColumn(title: '拉黑原因')]
@@ -118,6 +116,17 @@ class UserRankingBlacklist
     #[FormField(title: '解封时间')]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '解封时间'])]
     private ?\DateTimeImmutable $unblockTime = null;
+
+    #[Groups(['admin_curd'])]
+    #[ListColumn(title: '备注')]
+    #[FormField(title: '备注')]
+    #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '备注'])]
+    private ?string $comment = null;
+
+    #[ListColumn(title: '过期时间')]
+    #[FormField(title: '过期时间')]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '过期时间'])]
+    private ?\DateTimeImmutable $expireTime = null;
 
     public function setCreatedBy(?string $createdBy): self
     {
@@ -167,14 +176,14 @@ class UserRankingBlacklist
         return $this;
     }
 
-    public function getUser(): ?UserInterface
+    public function getUserId(): ?string
     {
-        return $this->user;
+        return $this->userId;
     }
 
-    public function setUser(?UserInterface $user): self
+    public function setUserId(?string $userId): self
     {
-        $this->user = $user;
+        $this->userId = $userId;
 
         return $this;
     }
@@ -206,5 +215,29 @@ class UserRankingBlacklist
     public function isBlocked(\DateTimeInterface $now): bool
     {
         return !$this->unblockTime || $now < $this->unblockTime;
+    }
+
+    public function getComment(): ?string
+    {
+        return $this->comment;
+    }
+
+    public function setComment(?string $comment): self
+    {
+        $this->comment = $comment;
+
+        return $this;
+    }
+
+    public function getExpireTime(): ?\DateTimeImmutable
+    {
+        return $this->expireTime;
+    }
+
+    public function setExpireTime(?\DateTimeImmutable $expireTime): self
+    {
+        $this->expireTime = $expireTime;
+
+        return $this;
     }
 }

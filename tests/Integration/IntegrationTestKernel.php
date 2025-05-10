@@ -8,16 +8,11 @@ use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Kernel as BaseKernel;
-use Symfony\Component\Messenger\MessengerBundle;
 use Tourze\DoctrineIndexedBundle\DoctrineIndexedBundle;
 use Tourze\DoctrineSnowflakeBundle\DoctrineSnowflakeBundle;
 use Tourze\DoctrineTimestampBundle\DoctrineTimestampBundle;
-use Tourze\DoctrineTrackBundle\DoctrineTrackBundle;
 use Tourze\DoctrineUserBundle\DoctrineUserBundle;
-use Tourze\LockServiceBundle\LockServiceBundle;
 use Tourze\SnowflakeBundle\SnowflakeBundle;
-use Tourze\SymfonyAsyncBundle\SymfonyAsyncBundle;
-use Tourze\SymfonyCronJobBundle\SymfonyCronJobBundle;
 use UserRankingBundle\UserRankingBundle;
 
 class IntegrationTestKernel extends BaseKernel
@@ -29,19 +24,14 @@ class IntegrationTestKernel extends BaseKernel
         yield new FrameworkBundle();
         yield new DoctrineBundle();
         yield new SecurityBundle();
-        yield new MessengerBundle();
-        
+
         // 依赖的 Bundle
         yield new SnowflakeBundle();
         yield new DoctrineSnowflakeBundle();
         yield new DoctrineIndexedBundle();
         yield new DoctrineTimestampBundle();
-        yield new DoctrineTrackBundle();
         yield new DoctrineUserBundle();
-        yield new LockServiceBundle();
-        yield new SymfonyAsyncBundle();
-        yield new SymfonyCronJobBundle();
-        
+
         // 被测试的 Bundle
         yield new UserRankingBundle();
     }
@@ -63,6 +53,13 @@ class IntegrationTestKernel extends BaseKernel
             'php_errors' => [
                 'log' => true,
             ],
+            'validation' => [
+                'email_validation_mode' => 'html5',
+            ],
+            'uid' => [
+                'default_uuid_version' => 7,
+                'time_based_uuid_version' => 7,
+            ],
         ]);
 
         // Doctrine 配置 - 使用内存数据库
@@ -82,23 +79,40 @@ class IntegrationTestKernel extends BaseKernel
                     'UserRankingBundle' => [
                         'is_bundle' => true,
                         'type' => 'attribute',
-                        'dir' => 'src/Entity',
+                        'dir' => 'Entity',
                         'prefix' => 'UserRankingBundle\Entity',
-                    ],
-                    'TestEntities' => [
-                        'is_bundle' => false,
-                        'type' => 'attribute',
-                        'dir' => '%kernel.project_dir%/tests/Integration/Entity',
-                        'prefix' => 'UserRankingBundle\Tests\Integration\Entity',
                     ],
                 ],
             ],
         ]);
-        
+
         // Snowflake 配置
         $container->extension('snowflake', [
             'node_id' => 1,
             'datacenter_id' => 1,
+        ]);
+
+        // Security 配置
+        $container->extension('security', [
+            'enable_authenticator_manager' => true,
+            'password_hashers' => [
+                'Symfony\Component\Security\Core\User\InMemoryUser' => 'auto',
+            ],
+            'providers' => [
+                'users_in_memory' => [
+                    'memory' => [],
+                ],
+            ],
+            'firewalls' => [
+                'dev' => [
+                    'pattern' => '^/(_(profiler|wdt)|css|images|js)/',
+                    'security' => false,
+                ],
+                'main' => [
+                    'lazy' => true,
+                    'provider' => 'users_in_memory',
+                ],
+            ],
         ]);
     }
 

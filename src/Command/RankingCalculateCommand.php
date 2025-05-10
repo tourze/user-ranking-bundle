@@ -28,7 +28,7 @@ use UserRankingBundle\Repository\UserRankingListRepository;
 )]
 class RankingCalculateCommand extends Command
 {
-    public const COMMAND = 'ranking-calculate-command:calculate';
+    public const COMMAND = 'user-ranking:calculate';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,

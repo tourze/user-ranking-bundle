@@ -45,31 +45,28 @@ class RefreshFrequencyTest extends TestCase
         $this->assertContains(RefreshFrequency::MONTHLY, $cases);
     }
 
-    public function testGetItems(): void
+    public function testToSelectItem(): void
     {
-        $items = RefreshFrequency::getItems();
-        $this->assertIsArray($items);
-        $this->assertCount(8, $items);
-
-        // 检查第一个项
-        $firstItem = $items[0];
-        $this->assertArrayHasKey('value', $firstItem);
-        $this->assertArrayHasKey('label', $firstItem);
-        $this->assertEquals('every_minute', $firstItem['value']);
-        $this->assertEquals('每分钟', $firstItem['label']);
+        $item = RefreshFrequency::EVERY_MINUTE->toSelectItem();
+        $this->assertIsArray($item);
+        $this->assertArrayHasKey('value', $item);
+        $this->assertArrayHasKey('label', $item);
+        $this->assertEquals('every_minute', $item['value']);
+        $this->assertEquals('每分钟', $item['label']);
     }
 
-    public function testGetOptions(): void
+    public function testGenOptions(): void
     {
-        $options = RefreshFrequency::getOptions();
+        $options = RefreshFrequency::genOptions();
         $this->assertIsArray($options);
         $this->assertCount(8, $options);
 
-        // 每个选项应该是一个键值对，其中键是枚举值，值是对应的标签
-        $this->assertArrayHasKey('every_minute', $options);
-        $this->assertEquals('每分钟', $options['every_minute']);
-        $this->assertArrayHasKey('daily', $options);
-        $this->assertEquals('每天', $options['daily']);
+        // 每个选项应该是一个含有label和value的数组
+        $firstItem = $options[0];
+        $this->assertArrayHasKey('value', $firstItem);
+        $this->assertArrayHasKey('label', $firstItem);
+        $this->assertContains('every_minute', array_column($options, 'value'));
+        $this->assertContains('每分钟', array_column($options, 'label'));
     }
 
     public function testFromName(): void

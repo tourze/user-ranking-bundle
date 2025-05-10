@@ -16,9 +16,11 @@
     "symfony/console": "^6.4",
     "symfony/dependency-injection": "^6.4",
     "symfony/event-dispatcher-contracts": "^2.5 | ^3",
+    "symfony/framework-bundle": "^6.4",
     "symfony/http-kernel": "^6.4",
     "symfony/messenger": "^6.4",
     "symfony/security-core": "^6.4",
+    "symfony/yaml": "^6.4 || ^7.1",
     "tourze/doctrine-indexed-bundle": "0.0.*",
     "tourze/doctrine-snowflake-bundle": "0.1.*",
     "tourze/doctrine-timestamp-bundle": "0.0.*",
@@ -28,7 +30,8 @@
     "tourze/enum-extra": "~0.0.5",
     "tourze/lock-service-bundle": "0.0.*",
     "tourze/symfony-async-bundle": "0.0.*",
-    "tourze/symfony-cron-job-bundle": "0.1.*"
+    "tourze/symfony-cron-job-bundle": "0.1.*",
+    "tourze/symfony-snowflake-bundle": "0.0.*"
   },
   "require-dev": {
     "phpstan/phpstan": "^2.1",

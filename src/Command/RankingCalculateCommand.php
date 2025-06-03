@@ -14,7 +14,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
-use Tourze\Symfony\Async\Message\RunCommandMessage;
+use Tourze\AsyncCommandBundle\Message\RunCommandMessage;
 use UserRankingBundle\Entity\UserRankingItem;
 use UserRankingBundle\Entity\UserRankingList;
 use UserRankingBundle\Event\RankingCalculateCheckUserEvent;

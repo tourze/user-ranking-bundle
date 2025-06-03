@@ -8,7 +8,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Tourze\Symfony\Async\Message\RunCommandMessage;
+use Tourze\AsyncCommandBundle\Message\RunCommandMessage;
 use Tourze\Symfony\CronJob\Attribute\AsCronTask;
 use UserRankingBundle\Entity\UserRankingList;
 use UserRankingBundle\Enum\RefreshFrequency;

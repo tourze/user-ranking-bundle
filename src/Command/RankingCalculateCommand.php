@@ -237,14 +237,14 @@ class RankingCalculateCommand extends Command
                         'list-id' => $list->getId(),
                     ]);
                     $this->messageBus->dispatch($message);
-                } catch (\Exception $e) {
+                } catch  (\Throwable $e) {
                     $this->entityManager->rollback();
                     throw $e;
                 }
             } else {
                 $io->note('空运行完成，未实际更新数据');
             }
-        } catch (\Exception $e) {
+        } catch  (\Throwable $e) {
             $io->error(sprintf('计算失败: %s', $e->getMessage()));
         }
     }

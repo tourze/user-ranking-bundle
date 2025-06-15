@@ -40,14 +40,14 @@ class UserRankingBlacklistTest extends TestCase
 
     public function testGetterAndSetterForCreateTime(): void
     {
-        $createTime = new \DateTime('2023-01-01');
+        $createTime = new \DateTimeImmutable('2023-01-01');
         $this->blacklist->setCreateTime($createTime);
         $this->assertEquals($createTime, $this->blacklist->getCreateTime());
     }
 
     public function testGetterAndSetterForUpdateTime(): void
     {
-        $updateTime = new \DateTime('2023-01-02');
+        $updateTime = new \DateTimeImmutable('2023-01-02');
         $this->blacklist->setUpdateTime($updateTime);
         $this->assertEquals($updateTime, $this->blacklist->getUpdateTime());
     }
@@ -142,4 +142,4 @@ class UserRankingBlacklistTest extends TestCase
             $this->markTestSkipped('isBlocked 方法不存在');
         }
     }
-} 
+}

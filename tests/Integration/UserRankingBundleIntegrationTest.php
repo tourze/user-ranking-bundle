@@ -3,14 +3,27 @@
 namespace UserRankingBundle\Tests\Integration;
 
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\HttpKernel\KernelInterface;
+use Tourze\IntegrationTestKernel\IntegrationTestKernel;
 use UserRankingBundle\Repository\UserRankingListRepository;
 use UserRankingBundle\UserRankingBundle;
 
 class UserRankingBundleIntegrationTest extends KernelTestCase
 {
-    protected static function getKernelClass(): string
+    protected static function createKernel(array $options = []): KernelInterface
     {
-        return IntegrationTestKernel::class;
+        $env = $options['environment'] ?? $_ENV['APP_ENV'] ?? $_SERVER['APP_ENV'] ?? 'test';
+        $debug = $options['debug'] ?? $_ENV['APP_DEBUG'] ?? $_SERVER['APP_DEBUG'] ?? true;
+
+        return new IntegrationTestKernel($env, $debug, [
+            UserRankingBundle::class => ['all' => true],
+        ]);
+    }
+
+    protected function setUp(): void
+    {
+        self::bootKernel();
+        parent::setUp();
     }
 
     public function testBundleLoads(): void

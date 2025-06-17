@@ -121,7 +121,7 @@ class UserRankingBlacklistTest extends TestCase
 
     public function testIsBlocked(): void
     {
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         
         // 没有设置解封时间，应该是已屏蔽的
         if (method_exists($this->blacklist, 'isBlocked')) {

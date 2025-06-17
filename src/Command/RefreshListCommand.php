@@ -31,7 +31,7 @@ class RefreshListCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
 
         foreach ($this->listRepository->findBy(['valid' => true]) as $list) {
             if (!$this->shouldRefresh($list, $now)) {

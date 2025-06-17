@@ -29,7 +29,7 @@ class BlacklistCleanupCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
 
         try {
             // 查找已过期但仍然有效的黑名单记录

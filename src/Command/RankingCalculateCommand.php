@@ -100,7 +100,7 @@ class RankingCalculateCommand extends Command
         }
 
         try {
-            $now = new \DateTime();
+            $now = new \DateTimeImmutable();
 
             // 获取黑名单用户ID列表
             $blockedUserIds = $this->blacklistRepository->getBlockedUserIds($list, $now);

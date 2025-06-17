@@ -40,7 +40,7 @@ class UserRankingBlacklistRepository extends ServiceEntityRepository
      */
     public function removeExpired(): int
     {
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         
         $qb = $this->createQueryBuilder('b')
             ->delete()

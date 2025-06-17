@@ -88,7 +88,7 @@ class ArchiveRankingCommand extends Command
 
         // 清理过期数据
         if ($keepDays > 0) {
-            $expireDate = (new \DateTime())->modify("-{$keepDays} days");
+            $expireDate = (new \DateTimeImmutable())->modify("-{$keepDays} days");
             $this->entityManager->createQueryBuilder()
                 ->delete(UserRankingArchive::class, 'a')
                 ->where('a.list = :list')

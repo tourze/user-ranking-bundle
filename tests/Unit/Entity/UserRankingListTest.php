@@ -171,25 +171,23 @@ class UserRankingListTest extends TestCase
     public function testIsInValidPeriod_WithNoTimeConstraints(): void
     {
         // 没有设置开始和结束时间，应该返回 true
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         $this->assertTrue($this->userRankingList->isInValidPeriod($now));
     }
 
     public function testIsInValidPeriod_WithStartTimeOnly(): void
     {
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         
         // 设置过去的开始时间
-        $startTime = clone $now;
-        $startTime->modify('-1 day');
+        $startTime = $now->modify('-1 day');
         $this->userRankingList->setStartTime($startTime);
         
         // 当前时间在开始时间之后，应该返回 true
         $this->assertTrue($this->userRankingList->isInValidPeriod($now));
         
         // 设置未来的开始时间
-        $startTime = clone $now;
-        $startTime->modify('+1 day');
+        $startTime = $now->modify('+1 day');
         $this->userRankingList->setStartTime($startTime);
         
         // 当前时间在开始时间之前，应该返回 false
@@ -198,19 +196,17 @@ class UserRankingListTest extends TestCase
 
     public function testIsInValidPeriod_WithEndTimeOnly(): void
     {
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         
         // 设置未来的结束时间
-        $endTime = clone $now;
-        $endTime->modify('+1 day');
+        $endTime = $now->modify('+1 day');
         $this->userRankingList->setEndTime($endTime);
         
         // 当前时间在结束时间之前，应该返回 true
         $this->assertTrue($this->userRankingList->isInValidPeriod($now));
         
         // 设置过去的结束时间
-        $endTime = clone $now;
-        $endTime->modify('-1 day');
+        $endTime = $now->modify('-1 day');
         $this->userRankingList->setEndTime($endTime);
         
         // 当前时间在结束时间之后，应该返回 false
@@ -219,13 +215,11 @@ class UserRankingListTest extends TestCase
 
     public function testIsInValidPeriod_WithStartAndEndTime(): void
     {
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         
         // 设置过去的开始时间和未来的结束时间
-        $startTime = clone $now;
-        $startTime->modify('-1 day');
-        $endTime = clone $now;
-        $endTime->modify('+1 day');
+        $startTime = $now->modify('-1 day');
+        $endTime = $now->modify('+1 day');
         
         $this->userRankingList->setStartTime($startTime);
         $this->userRankingList->setEndTime($endTime);
@@ -234,10 +228,8 @@ class UserRankingListTest extends TestCase
         $this->assertTrue($this->userRankingList->isInValidPeriod($now));
         
         // 设置未来的开始时间和结束时间
-        $startTime = clone $now;
-        $startTime->modify('+1 day');
-        $endTime = clone $now;
-        $endTime->modify('+2 days');
+        $startTime = $now->modify('+1 day');
+        $endTime = $now->modify('+2 days');
         
         $this->userRankingList->setStartTime($startTime);
         $this->userRankingList->setEndTime($endTime);
@@ -246,10 +238,8 @@ class UserRankingListTest extends TestCase
         $this->assertFalse($this->userRankingList->isInValidPeriod($now));
         
         // 设置过去的开始时间和结束时间
-        $startTime = clone $now;
-        $startTime->modify('-2 days');
-        $endTime = clone $now;
-        $endTime->modify('-1 day');
+        $startTime = $now->modify('-2 days');
+        $endTime = $now->modify('-1 day');
         
         $this->userRankingList->setStartTime($startTime);
         $this->userRankingList->setEndTime($endTime);

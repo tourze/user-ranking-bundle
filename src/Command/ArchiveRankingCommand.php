@@ -22,7 +22,9 @@ use UserRankingBundle\Repository\UserRankingListRepository;
 )]
 class ArchiveRankingCommand extends Command
 {
-    public const COMMAND = 'user-ranking:archive';
+    
+    public const NAME = 'user-ranking:archive';
+public const COMMAND = 'user-ranking:archive';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -54,7 +56,7 @@ class ArchiveRankingCommand extends Command
 
         // 获取当前排名数据
         $items = $this->itemRepository->findBy(['list' => $list], ['number' => 'ASC']);
-        if (empty($items)) {
+        if ((bool) empty($items)) {
             $output->writeln('<info>当前排行榜没有排名数据</info>');
 
             return Command::SUCCESS;

@@ -7,20 +7,14 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\EasyAdmin\Attribute\Action\Listable;
-use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
-use Tourze\EasyAdmin\Attribute\Column\ListColumn;
-use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use UserRankingBundle\Repository\UserRankingArchiveRepository;
 
-#[AsPermission(title: '排行榜历史归档')]
 #[Listable]
 #[ORM\Table(name: 'user_ranking_archive', options: ['comment' => '用户排行历史归档'])]
 #[ORM\UniqueConstraint(name: 'uniq_list_user_archive_time', columns: ['list_id', 'user_id', 'archive_time'])]
 #[ORM\Entity(repositoryClass: UserRankingArchiveRepository::class)]
 class UserRankingArchive implements \Stringable
 {
-    #[ListColumn(order: -1)]
-    #[ExportColumn]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER, options: ['comment' => 'ID'])]
@@ -37,23 +31,17 @@ class UserRankingArchive implements \Stringable
     #[ORM\JoinColumn(nullable: false)]
     private UserRankingList $list;
 
-    #[ListColumn(sorter: true)]
     #[Groups(['admin_curd', 'restful_read'])]
     #[ORM\Column(options: ['comment' => '排名'])]
     private int $number;
 
     #[Groups(['admin_curd', 'restful_read'])]
-    #[ListColumn(sorter: true)]
-    #[ORM\Column(type: Types::BIGINT, options: ['comment' => 'USER ID'])]
     private string $userId;
 
-    #[ListColumn]
-    #[ORM\Column(type: Types::INTEGER, nullable: true, options: ['comment' => '分数'])]
     private ?int $score = null;
 
-    #[ListColumn]
     #[Groups(['admin_curd', 'restful_read'])]
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, options: ['comment' => '归档时间'])]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, options: ['comment' => '归档时间'])]
     private \DateTimeInterface $archiveTime;
 
     public function __toString(): string

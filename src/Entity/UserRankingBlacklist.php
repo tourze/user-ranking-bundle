@@ -4,37 +4,23 @@ namespace UserRankingBundle\Entity;
 
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Stringable;
 use Symfony\Component\Serializer\Attribute\Groups;
-use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineTrackBundle\Attribute\TrackColumn;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
-use Tourze\EasyAdmin\Attribute\Action\Creatable;
-use Tourze\EasyAdmin\Attribute\Action\Deletable;
-use Tourze\EasyAdmin\Attribute\Action\Editable;
 use Tourze\EasyAdmin\Attribute\Action\Listable;
-use Tourze\EasyAdmin\Attribute\Column\BoolColumn;
-use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
-use Tourze\EasyAdmin\Attribute\Column\ListColumn;
-use Tourze\EasyAdmin\Attribute\Field\FormField;
-use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use UserRankingBundle\Repository\UserRankingBlacklistRepository;
 
-#[AsPermission(title: '排行榜黑名单')]
 #[Listable]
-#[Deletable]
-#[Editable]
-#[Creatable]
 #[ORM\Table(name: 'user_ranking_blacklist', options: ['comment' => '排行榜黑名单'])]
 #[ORM\Entity(repositoryClass: UserRankingBlacklistRepository::class)]
 #[ORM\UniqueConstraint(name: 'user_ranking_blacklist_uniq_1', columns: ['list_id', 'user_id'])]
-class UserRankingBlacklist
+class UserRankingBlacklist implements Stringable
 {
     use TimestampableAware;
 
-    #[ListColumn(order: -1)]
-    #[ExportColumn]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER, options: ['comment' => 'ID'])]
@@ -46,19 +32,12 @@ class UserRankingBlacklist
     }
 
     #[CreatedByColumn]
-    #[ORM\Column(nullable: true, options: ['comment' => '创建人'])]
     private ?string $createdBy = null;
 
     #[UpdatedByColumn]
-    #[ORM\Column(nullable: true, options: ['comment' => '更新人'])]
     private ?string $updatedBy = null;
 
-    #[BoolColumn]
-    #[IndexColumn]
     #[TrackColumn]
-    #[ORM\Column(type: Types::BOOLEAN, nullable: true, options: ['comment' => '有效', 'default' => 0])]
-    #[ListColumn(order: 97)]
-    #[FormField(order: 97)]
     private ?bool $valid = false;
 
     #[ORM\ManyToOne]
@@ -66,31 +45,21 @@ class UserRankingBlacklist
     private ?UserRankingList $list = null;
 
     #[Groups(['admin_curd'])]
-    #[ListColumn(title: '用户ID')]
-    #[FormField(title: '用户ID')]
     #[ORM\Column(name: 'user_id', type: Types::STRING, length: 64, options: ['comment' => '用户ID'])]
     private ?string $userId = null;
 
     #[Groups(['admin_curd'])]
-    #[ListColumn(title: '拉黑原因')]
-    #[FormField(title: '拉黑原因')]
     #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '拉黑原因'])]
     private ?string $reason = null;
 
     #[Groups(['admin_curd'])]
-    #[ListColumn(title: '解封时间')]
-    #[FormField(title: '解封时间')]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '解封时间'])]
     private ?\DateTimeImmutable $unblockTime = null;
 
     #[Groups(['admin_curd'])]
-    #[ListColumn(title: '备注')]
-    #[FormField(title: '备注')]
     #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '备注'])]
     private ?string $comment = null;
 
-    #[ListColumn(title: '过期时间')]
-    #[FormField(title: '过期时间')]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '过期时间'])]
     private ?\DateTimeImmutable $expireTime = null;
 
@@ -205,5 +174,10 @@ class UserRankingBlacklist
         $this->expireTime = $expireTime;
 
         return $this;
+    }
+
+    public function __toString(): string
+    {
+        return (string) $this->id;
     }
 }

@@ -28,7 +28,9 @@ use UserRankingBundle\Repository\UserRankingListRepository;
 )]
 class RankingCalculateCommand extends Command
 {
-    public const COMMAND = 'user-ranking:calculate';
+    
+    public const NAME = 'app:-ranking-calculate';
+public const COMMAND = 'user-ranking:calculate';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -57,7 +59,7 @@ class RankingCalculateCommand extends Command
 
         // 获取需要计算的排行榜
         $lists = [];
-        if ($listId) {
+        if ((bool) $listId) {
             $list = $this->listRepository->find($listId);
             if (!$list) {
                 $io->error(sprintf('排行榜 %s 不存在', $listId));
@@ -69,7 +71,7 @@ class RankingCalculateCommand extends Command
             $lists = $this->listRepository->findBy(['valid' => true]);
         }
 
-        if (empty($lists)) {
+        if ((bool) empty($lists)) {
             $io->warning('没有找到需要计算的排行榜');
 
             return Command::SUCCESS;
@@ -94,7 +96,7 @@ class RankingCalculateCommand extends Command
         }
 
         if ($list->getStartTime() && $list->getEndTime()) {
-            if (Carbon::now()->lessThan($list->getStartTime()) || Carbon::now()->greaterThan($list->getEndTime())) {
+            if ((bool) Carbon::now()->lessThan($list->getStartTime()) || Carbon::now()->greaterThan($list->getEndTime())) {
                 return;
             }
         }
@@ -108,7 +110,7 @@ class RankingCalculateCommand extends Command
             // 执行计算SQL获取分数
             $scores = $this->connection->fetchAllAssociative($list->getScoreSql());
 
-            if (empty($scores)) {
+            if ((bool) empty($scores)) {
                 // 为空的时候要把之前的数据都删掉
                 $qb = $this->entityManager->createQueryBuilder();
                 $qb->delete(UserRankingItem::class, 'i')
@@ -173,7 +175,7 @@ class RankingCalculateCommand extends Command
                 }
 
                 // 如果用户有固定排名，使用固定排名
-                if (isset($fixedUserNumbers[$userId])) {
+                if ((bool) isset($fixedUserNumbers[$userId])) {
                     continue;
                 }
 
@@ -187,7 +189,7 @@ class RankingCalculateCommand extends Command
                     break;
                 }
 
-                if ($isDryRun) {
+                if ((bool) $isDryRun) {
                     $io->writeln(sprintf(
                         '用户 %s 将被设置为第 %d 名，分数: %d',
                         $userId,

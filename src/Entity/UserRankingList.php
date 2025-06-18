@@ -13,35 +13,21 @@ use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineTrackBundle\Attribute\TrackColumn;
 use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
 use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
-use Tourze\EasyAdmin\Attribute\Action\Creatable;
 use Tourze\EasyAdmin\Attribute\Action\CurdAction;
-use Tourze\EasyAdmin\Attribute\Action\Deletable;
-use Tourze\EasyAdmin\Attribute\Action\Editable;
 use Tourze\EasyAdmin\Attribute\Action\Listable;
-use Tourze\EasyAdmin\Attribute\Column\BoolColumn;
-use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
-use Tourze\EasyAdmin\Attribute\Column\ListColumn;
 use Tourze\EasyAdmin\Attribute\Column\PictureColumn;
-use Tourze\EasyAdmin\Attribute\Field\FormField;
 use Tourze\EasyAdmin\Attribute\Field\ImagePickerField;
-use Tourze\EasyAdmin\Attribute\Permission\AsPermission;
 use Tourze\LockServiceBundle\Model\LockEntity;
 use UserRankingBundle\Enum\RefreshFrequency;
 use UserRankingBundle\Repository\UserRankingListRepository;
 
-#[AsPermission(title: '排行榜管理')]
 #[Listable]
-#[Deletable]
-#[Editable]
-#[Creatable]
 #[ORM\Table(name: 'user_ranking_list', options: ['comment' => '排行榜管理'])]
 #[ORM\Entity(repositoryClass: UserRankingListRepository::class)]
 class UserRankingList implements \Stringable, LockEntity
 {
     use TimestampableAware;
 
-    #[ExportColumn]
-    #[ListColumn(order: -1, sorter: true)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
@@ -49,41 +35,29 @@ class UserRankingList implements \Stringable, LockEntity
     private ?string $id = null;
 
     #[Groups(['admin_curd', 'restful_read'])]
-    #[ListColumn]
-    #[FormField]
     #[ORM\Column(type: Types::STRING, length: 64, options: ['comment' => '标题'])]
     private ?string $title = null;
 
     #[Groups(['admin_curd', 'restful_read'])]
-    #[ListColumn]
-    #[FormField]
     #[ORM\Column(type: Types::STRING, length: 100, nullable: true, options: ['comment' => '副标题'])]
     private ?string $subtitle = null;
 
     #[Groups(['admin_curd', 'restful_read'])]
-    #[ListColumn]
-    #[FormField]
     #[ORM\Column(type: Types::STRING, length: 20, options: ['comment' => '颜色'])]
     private ?string $color = '';
 
     #[ImagePickerField]
     #[PictureColumn]
     #[Groups(['admin_curd', 'restful_read'])]
-    #[ListColumn]
-    #[FormField]
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true, options: ['comment' => 'LOGO地址'])]
     private ?string $logoUrl = null;
 
     #[IndexColumn]
-    #[ListColumn]
-    #[FormField(span: 10)]
-    #[ORM\Column(name: 'start_time', type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '开始时间'])]
+    #[ORM\Column(name: 'start_time', type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '开始时间'])]
     private ?\DateTimeInterface $startTime = null;
 
     #[IndexColumn]
-    #[ListColumn]
-    #[FormField(span: 14)]
-    #[ORM\Column(name: 'end_time', type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '结束时间'])]
+    #[ORM\Column(name: 'end_time', type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '结束时间'])]
     private ?\DateTimeInterface $endTime = null;
 
     #[CurdAction(label: '用户列表')]
@@ -98,41 +72,26 @@ class UserRankingList implements \Stringable, LockEntity
     private ?string $scoreSql = null;
 
     #[Groups(['admin_curd'])]
-    #[ListColumn(sorter: true)]
-    #[FormField]
     #[ORM\Column(type: Types::INTEGER, nullable: true, options: ['comment' => '总名次'])]
     private ?int $count = null;
 
-    #[ListColumn(title: '推荐位置')]
-    #[FormField(title: '推荐位置')]
     #[ORM\ManyToMany(targetEntity: UserRankingPosition::class, inversedBy: 'lists', fetch: 'EXTRA_LAZY')]
     private Collection $positions;
 
     #[Groups(['admin_curd'])]
-    #[ListColumn(title: '更新频率')]
-    #[FormField(title: '更新频率')]
     #[ORM\Column(type: Types::STRING, nullable: true, enumType: RefreshFrequency::class, options: ['comment' => '更新频率'])]
     private ?RefreshFrequency $refreshFrequency = RefreshFrequency::EVERY_MINUTE;
 
     #[Groups(['admin_curd'])]
-    #[ListColumn(title: '最后刷新时间')]
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '最后刷新时间'])]
     private ?\DateTimeImmutable $refreshTime = null;
 
-    #[BoolColumn]
-    #[IndexColumn]
     #[TrackColumn]
-    #[ORM\Column(type: Types::BOOLEAN, nullable: true, options: ['comment' => '有效', 'default' => 0])]
-    #[ListColumn(order: 97)]
-    #[FormField(order: 97)]
     private ?bool $valid = false;
 
     #[CreatedByColumn]
-    #[ORM\Column(nullable: true, options: ['comment' => '创建人'])]
     private ?string $createdBy = null;
 
     #[UpdatedByColumn]
-    #[ORM\Column(nullable: true, options: ['comment' => '更新人'])]
     private ?string $updatedBy = null;
 
     public function __construct()

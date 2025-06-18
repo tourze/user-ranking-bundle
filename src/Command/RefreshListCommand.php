@@ -21,7 +21,9 @@ use UserRankingBundle\Repository\UserRankingListRepository;
 )]
 class RefreshListCommand extends Command
 {
-    public function __construct(
+    
+    public const NAME = 'user-ranking:calculate';
+public function __construct(
         private readonly UserRankingListRepository $listRepository,
         private readonly MessageBusInterface $messageBus,
     ) {

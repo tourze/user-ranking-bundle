@@ -18,7 +18,9 @@ use UserRankingBundle\Entity\UserRankingBlacklist;
 )]
 class BlacklistCleanupCommand extends Command
 {
-    public const COMMAND = 'user-ranking:blacklist:cleanup';
+    
+    public const NAME = 'app:-blacklist-cleanup';
+public const COMMAND = 'user-ranking:blacklist:cleanup';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,

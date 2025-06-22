@@ -35,7 +35,7 @@ class UserRankingBlacklistRepository extends ServiceEntityRepository
 
     /**
      * 清理已过期的黑名单记录
-     * 
+     *
      * @return int 被移除的记录数量
      */
     public function removeExpired(): int

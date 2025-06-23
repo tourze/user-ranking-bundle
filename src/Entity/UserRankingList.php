@@ -11,22 +11,17 @@ use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
 use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineTrackBundle\Attribute\TrackColumn;
-use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
-use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
-use Tourze\EasyAdmin\Attribute\Action\CurdAction;
-use Tourze\EasyAdmin\Attribute\Action\Listable;
-use Tourze\EasyAdmin\Attribute\Column\PictureColumn;
-use Tourze\EasyAdmin\Attribute\Field\ImagePickerField;
+use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use Tourze\LockServiceBundle\Model\LockEntity;
 use UserRankingBundle\Enum\RefreshFrequency;
 use UserRankingBundle\Repository\UserRankingListRepository;
 
-#[Listable]
 #[ORM\Table(name: 'user_ranking_list', options: ['comment' => '排行榜管理'])]
 #[ORM\Entity(repositoryClass: UserRankingListRepository::class)]
 class UserRankingList implements \Stringable, LockEntity
 {
     use TimestampableAware;
+    use BlameableAware;
 
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -46,8 +41,6 @@ class UserRankingList implements \Stringable, LockEntity
     #[ORM\Column(type: Types::STRING, length: 20, options: ['comment' => '颜色'])]
     private ?string $color = '';
 
-    #[ImagePickerField]
-    #[PictureColumn]
     #[Groups(['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true, options: ['comment' => 'LOGO地址'])]
     private ?string $logoUrl = null;
@@ -60,14 +53,9 @@ class UserRankingList implements \Stringable, LockEntity
     #[ORM\Column(name: 'end_time', type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '结束时间'])]
     private ?\DateTimeInterface $endTime = null;
 
-    #[CurdAction(label: '用户列表')]
     #[ORM\OneToMany(targetEntity: UserRankingItem::class, mappedBy: 'list', orphanRemoval: true)]
     private Collection $items;
 
-    /**
-     * 具体每个排行榜商品的计算逻辑，不好去定，我们直接写sql吧
-     * 返回每一行，第一个值是商品ID，第二个值是分数
-     */
     #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '计算SQL'])]
     private ?string $scoreSql = null;
 
@@ -83,16 +71,12 @@ class UserRankingList implements \Stringable, LockEntity
     private ?RefreshFrequency $refreshFrequency = RefreshFrequency::EVERY_MINUTE;
 
     #[Groups(['admin_curd'])]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '最后刷新时间'])]
     private ?\DateTimeImmutable $refreshTime = null;
 
     #[TrackColumn]
-    private ?bool $valid = false;
-
-    #[CreatedByColumn]
-    private ?string $createdBy = null;
-
-    #[UpdatedByColumn]
-    private ?string $updatedBy = null;
+    #[ORM\Column(type: Types::BOOLEAN, nullable: false, options: ['default' => true, 'comment' => '是否有效'])]
+    private ?bool $valid = true;
 
     public function __construct()
     {
@@ -102,7 +86,7 @@ class UserRankingList implements \Stringable, LockEntity
 
     public function __toString(): string
     {
-        if (!$this->getId()) {
+        if ($this->getId() === null) {
             return '';
         }
 
@@ -112,30 +96,6 @@ class UserRankingList implements \Stringable, LockEntity
     public function getId(): ?string
     {
         return $this->id;
-    }
-
-    public function setCreatedBy(?string $createdBy): self
-    {
-        $this->createdBy = $createdBy;
-
-        return $this;
-    }
-
-    public function getCreatedBy(): ?string
-    {
-        return $this->createdBy;
-    }
-
-    public function setUpdatedBy(?string $updatedBy): self
-    {
-        $this->updatedBy = $updatedBy;
-
-        return $this;
-    }
-
-    public function getUpdatedBy(): ?string
-    {
-        return $this->updatedBy;
     }
 
     public function isValid(): ?bool
@@ -333,17 +293,17 @@ class UserRankingList implements \Stringable, LockEntity
     public function isInValidPeriod(\DateTimeInterface $now): bool
     {
         // 如果没有设置时间范围，则认为一直有效
-        if (!$this->startTime && !$this->endTime) {
+        if ($this->startTime === null && $this->endTime === null) {
             return true;
         }
 
         // 如果只设置了开始时间，检查是否已经开始
-        if ($this->startTime && !$this->endTime) {
+        if ($this->startTime !== null && $this->endTime === null) {
             return $now >= $this->startTime;
         }
 
         // 如果只设置了结束时间，检查是否已经结束
-        if (!$this->startTime && $this->endTime) {
+        if ($this->startTime === null && $this->endTime !== null) {
             return $now <= $this->endTime;
         }
 

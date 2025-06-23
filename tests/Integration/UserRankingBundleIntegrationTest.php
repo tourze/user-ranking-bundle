@@ -65,7 +65,7 @@ class UserRankingBundleIntegrationTest extends KernelTestCase
         // 验证命令已注册 - 可以通过检查 console.command 标签来实现
         $commandLocator = $container->get('console.command_loader');
         $this->assertTrue($commandLocator->has('user-ranking:calculate'), '用户排行榜计算命令未注册');
-        $this->assertTrue($commandLocator->has('user-ranking:blacklist:cleanup'), '用户排行榜黑名单清理命令未注册');
+        $this->assertTrue($commandLocator->has('user-ranking:blacklist-cleanup'), '用户排行榜黑名单清理命令未注册');
         $this->assertTrue($commandLocator->has('user-ranking:archive'), '用户排行榜归档命令未注册');
     }
 }

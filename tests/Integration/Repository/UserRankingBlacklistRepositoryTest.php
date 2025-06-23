@@ -122,10 +122,8 @@ class UserRankingBlacklistRepositoryTest extends KernelTestCase
         parent::tearDown();
 
         // 清理以避免内存泄漏
-        $em = $this->entityManager;
-        $this->entityManager = $this->createMock(EntityManagerInterface::class);
-        if ($em) {
-            $em->close();
+        if (isset($this->entityManager)) {
+            $this->entityManager->close();
         }
     }
 } 

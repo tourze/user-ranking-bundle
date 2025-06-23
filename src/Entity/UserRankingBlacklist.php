@@ -8,18 +8,16 @@ use Stringable;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineTrackBundle\Attribute\TrackColumn;
-use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
-use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
-use Tourze\EasyAdmin\Attribute\Action\Listable;
+use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use UserRankingBundle\Repository\UserRankingBlacklistRepository;
 
-#[Listable]
 #[ORM\Table(name: 'user_ranking_blacklist', options: ['comment' => '排行榜黑名单'])]
 #[ORM\Entity(repositoryClass: UserRankingBlacklistRepository::class)]
 #[ORM\UniqueConstraint(name: 'user_ranking_blacklist_uniq_1', columns: ['list_id', 'user_id'])]
 class UserRankingBlacklist implements Stringable
 {
     use TimestampableAware;
+    use BlameableAware;
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -31,14 +29,9 @@ class UserRankingBlacklist implements Stringable
         return $this->id;
     }
 
-    #[CreatedByColumn]
-    private ?string $createdBy = null;
-
-    #[UpdatedByColumn]
-    private ?string $updatedBy = null;
-
     #[TrackColumn]
-    private ?bool $valid = false;
+    #[ORM\Column(type: Types::BOOLEAN, nullable: false, options: ['default' => true, 'comment' => '是否有效'])]
+    private ?bool $valid = true;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -62,30 +55,6 @@ class UserRankingBlacklist implements Stringable
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '过期时间'])]
     private ?\DateTimeImmutable $expireTime = null;
-
-    public function setCreatedBy(?string $createdBy): self
-    {
-        $this->createdBy = $createdBy;
-
-        return $this;
-    }
-
-    public function getCreatedBy(): ?string
-    {
-        return $this->createdBy;
-    }
-
-    public function setUpdatedBy(?string $updatedBy): self
-    {
-        $this->updatedBy = $updatedBy;
-
-        return $this;
-    }
-
-    public function getUpdatedBy(): ?string
-    {
-        return $this->updatedBy;
-    }
 
     public function isValid(): ?bool
     {
@@ -149,7 +118,7 @@ class UserRankingBlacklist implements Stringable
 
     public function isBlocked(\DateTimeInterface $now): bool
     {
-        return !$this->unblockTime || $now < $this->unblockTime;
+        return $this->unblockTime === null || $now < $this->unblockTime;
     }
 
     public function getComment(): ?string

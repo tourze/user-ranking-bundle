@@ -2,7 +2,7 @@
 
 namespace UserRankingBundle\Command;
 
-use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -17,7 +17,7 @@ use UserRankingBundle\Repository\UserRankingItemRepository;
 use UserRankingBundle\Repository\UserRankingListRepository;
 
 #[AsCommand(
-    name: 'user-ranking:archive',
+    name: self::NAME,
     description: '归档指定排行榜的当前排名数据'
 )]
 class ArchiveRankingCommand extends Command
@@ -48,7 +48,7 @@ public const COMMAND = 'user-ranking:archive';
 
         /** @var UserRankingList|null $list */
         $list = $this->listRepository->find($listId);
-        if (!$list) {
+        if ($list === null) {
             $output->writeln(sprintf('<error>排行榜 %s 不存在</error>', $listId));
 
             return Command::FAILURE;
@@ -63,7 +63,7 @@ public const COMMAND = 'user-ranking:archive';
         }
 
         // TODO 暂时都是按天来归档
-        $now = Carbon::now();
+        $now = CarbonImmutable::now();
 
         // 把今天的删除
         $this->entityManager->createQueryBuilder()
@@ -71,7 +71,7 @@ public const COMMAND = 'user-ranking:archive';
             ->where('a.list = :list')
             ->andWhere('a.archiveTime > :archiveTime')
             ->setParameter('list', $list)
-            ->setParameter('archiveTime', Carbon::now()->startOfDay())
+            ->setParameter('archiveTime', CarbonImmutable::now()->startOfDay())
             ->getQuery()
             ->execute();
 

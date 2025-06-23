@@ -11,17 +11,15 @@ use Symfony\Component\Serializer\Attribute\Ignore;
 use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineTrackBundle\Attribute\TrackColumn;
-use Tourze\DoctrineUserBundle\Attribute\CreatedByColumn;
-use Tourze\DoctrineUserBundle\Attribute\UpdatedByColumn;
-use Tourze\EasyAdmin\Attribute\Action\Listable;
+use Tourze\DoctrineUserBundle\Traits\BlameableAware;
 use UserRankingBundle\Repository\UserRankingPositionRepository;
 
-#[Listable]
 #[ORM\Table(name: 'user_ranking_position', options: ['comment' => '排行榜位置'])]
 #[ORM\Entity(repositoryClass: UserRankingPositionRepository::class)]
 class UserRankingPosition implements \Stringable
 {
     use TimestampableAware;
+    use BlameableAware;
 
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -29,14 +27,9 @@ class UserRankingPosition implements \Stringable
     #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
     private ?string $id = null;
 
-    #[CreatedByColumn]
-    private ?string $createdBy = null;
-
-    #[UpdatedByColumn]
-    private ?string $updatedBy = null;
-
     #[TrackColumn]
-    private ?bool $valid = false;
+    #[ORM\Column(type: Types::BOOLEAN, nullable: false, options: ['default' => true, 'comment' => '是否有效'])]
+    private ?bool $valid = true;
 
     #[Groups(['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::STRING, length: 50, unique: true, nullable: true, options: ['comment' => '名称'])]
@@ -53,7 +46,7 @@ class UserRankingPosition implements \Stringable
 
     public function __toString(): string
     {
-        if (!$this->getId()) {
+        if ($this->getId() === null) {
             return '';
         }
 
@@ -63,30 +56,6 @@ class UserRankingPosition implements \Stringable
     public function getId(): ?string
     {
         return $this->id;
-    }
-
-    public function setCreatedBy(?string $createdBy): self
-    {
-        $this->createdBy = $createdBy;
-
-        return $this;
-    }
-
-    public function getCreatedBy(): ?string
-    {
-        return $this->createdBy;
-    }
-
-    public function setUpdatedBy(?string $updatedBy): self
-    {
-        $this->updatedBy = $updatedBy;
-
-        return $this;
-    }
-
-    public function getUpdatedBy(): ?string
-    {
-        return $this->updatedBy;
     }
 
     public function isValid(): ?bool

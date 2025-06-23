@@ -2,7 +2,7 @@
 
 namespace UserRankingBundle\Command;
 
-use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -23,14 +23,13 @@ use UserRankingBundle\Repository\UserRankingItemRepository;
 use UserRankingBundle\Repository\UserRankingListRepository;
 
 #[AsCommand(
-    name: RankingCalculateCommand::COMMAND,
+    name: self::NAME,
     description: '计算用户排行榜排名',
 )]
 class RankingCalculateCommand extends Command
 {
     
-    public const NAME = 'app:-ranking-calculate';
-public const COMMAND = 'user-ranking:calculate';
+    public const NAME = 'user-ranking:calculate';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -61,7 +60,7 @@ public const COMMAND = 'user-ranking:calculate';
         $lists = [];
         if ((bool) $listId) {
             $list = $this->listRepository->find($listId);
-            if (!$list) {
+            if ($list === null) {
                 $io->error(sprintf('排行榜 %s 不存在', $listId));
 
                 return Command::FAILURE;
@@ -89,14 +88,14 @@ public const COMMAND = 'user-ranking:calculate';
         $io->section(sprintf('正在计算排行榜: %s', $list->getTitle()));
 
         // 检查是否有计算SQL
-        if (!$list->getScoreSql()) {
+        if ($list->getScoreSql() === null) {
             $io->warning('未配置计算SQL，跳过');
 
             return;
         }
 
-        if ($list->getStartTime() && $list->getEndTime()) {
-            if ((bool) Carbon::now()->lessThan($list->getStartTime()) || Carbon::now()->greaterThan($list->getEndTime())) {
+        if ($list->getStartTime() !== null && $list->getEndTime() !== null) {
+            if (CarbonImmutable::now()->lessThan($list->getStartTime()) || CarbonImmutable::now()->greaterThan($list->getEndTime())) {
                 return;
             }
         }
@@ -185,7 +184,7 @@ public const COMMAND = 'user-ranking:calculate';
                 }
 
                 // 检查是否超出总名次限制
-                if ($list->getCount() && $currentRank > $list->getCount()) {
+                if ($list->getCount() !== null && $currentRank > $list->getCount()) {
                     break;
                 }
 
@@ -234,7 +233,7 @@ public const COMMAND = 'user-ranking:calculate';
                     $io->success('排名计算完成');
 
                     $message = new RunCommandMessage();
-                    $message->setCommand(ArchiveRankingCommand::COMMAND);
+                    $message->setCommand(ArchiveRankingCommand::NAME);
                     $message->setOptions([
                         'list-id' => $list->getId(),
                     ]);

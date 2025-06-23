@@ -22,7 +22,7 @@ class BlacklistCleanupCommandTest extends TestCase
         $application->add($command);
         
         // 验证命令已注册
-        $this->assertTrue($application->has('user-ranking:blacklist:cleanup'));
-        $this->assertInstanceOf(BlacklistCleanupCommand::class, $application->find('user-ranking:blacklist:cleanup'));
+        $this->assertTrue($application->has('user-ranking:blacklist-cleanup'));
+        $this->assertInstanceOf(BlacklistCleanupCommand::class, $application->find('user-ranking:blacklist-cleanup'));
     }
 } 

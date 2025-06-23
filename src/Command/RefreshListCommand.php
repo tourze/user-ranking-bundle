@@ -16,7 +16,7 @@ use UserRankingBundle\Repository\UserRankingListRepository;
 
 #[AsCronTask('* * * * *')]
 #[AsCommand(
-    name: 'user-ranking:calculate',
+    name: self::NAME,
     description: '批量计算排行榜排名',
 )]
 class RefreshListCommand extends Command
@@ -41,7 +41,7 @@ public function __construct(
             }
 
             $message = new RunCommandMessage();
-            $message->setCommand(RankingCalculateCommand::COMMAND);
+            $message->setCommand(RankingCalculateCommand::NAME);
             $message->setOptions([
                 'list-id' => $list->getId(),
             ]);
@@ -51,17 +51,17 @@ public function __construct(
         return Command::SUCCESS;
     }
 
-    private function shouldRefresh(UserRankingList $list, \DateTime $now): bool
+    private function shouldRefresh(UserRankingList $list, \DateTimeImmutable $now): bool
     {
         // 获取最后刷新时间
         $lastRefresh = $list->getRefreshTime();
-        if (!$lastRefresh) {
+        if ($lastRefresh === null) {
             return true;
         }
 
         // 获取更新频率
         $frequency = $list->getRefreshFrequency();
-        if (!$frequency) {
+        if ($frequency === null) {
             return false; // 如果没有设置更新频率，则不更新
         }
 

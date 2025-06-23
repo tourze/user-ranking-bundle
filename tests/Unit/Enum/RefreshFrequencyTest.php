@@ -48,7 +48,6 @@ class RefreshFrequencyTest extends TestCase
     public function testToSelectItem(): void
     {
         $item = RefreshFrequency::EVERY_MINUTE->toSelectItem();
-        $this->assertIsArray($item);
         $this->assertArrayHasKey('value', $item);
         $this->assertArrayHasKey('label', $item);
         $this->assertEquals('every_minute', $item['value']);
@@ -58,7 +57,6 @@ class RefreshFrequencyTest extends TestCase
     public function testGenOptions(): void
     {
         $options = RefreshFrequency::genOptions();
-        $this->assertIsArray($options);
         $this->assertCount(8, $options);
 
         // 每个选项应该是一个含有label和value的数组
@@ -96,6 +94,10 @@ class RefreshFrequencyTest extends TestCase
     public function testCompareWithStringValue(): void
     {
         $this->assertTrue(RefreshFrequency::EVERY_MINUTE === RefreshFrequency::from('every_minute'));
-        $this->assertFalse(RefreshFrequency::EVERY_MINUTE === RefreshFrequency::DAILY);
+        
+        // 测试不同枚举值的比较
+        $everyMinute = RefreshFrequency::EVERY_MINUTE;
+        $daily = RefreshFrequency::DAILY;
+        $this->assertNotSame($everyMinute, $daily);
     }
 } 

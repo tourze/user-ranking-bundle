@@ -6,10 +6,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
-use Tourze\EasyAdmin\Attribute\Action\Listable;
 use UserRankingBundle\Repository\UserRankingArchiveRepository;
 
-#[Listable]
 #[ORM\Table(name: 'user_ranking_archive', options: ['comment' => '用户排行历史归档'])]
 #[ORM\UniqueConstraint(name: 'uniq_list_user_archive_time', columns: ['list_id', 'user_id', 'archive_time'])]
 #[ORM\Entity(repositoryClass: UserRankingArchiveRepository::class)]
@@ -36,8 +34,10 @@ class UserRankingArchive implements \Stringable
     private int $number;
 
     #[Groups(['admin_curd', 'restful_read'])]
+    #[ORM\Column(type: Types::STRING, options: ['comment' => '用户ID'])]
     private string $userId;
 
+    #[ORM\Column(type: Types::INTEGER, nullable: true, options: ['comment' => '分数'])]
     private ?int $score = null;
 
     #[Groups(['admin_curd', 'restful_read'])]
@@ -46,7 +46,7 @@ class UserRankingArchive implements \Stringable
 
     public function __toString(): string
     {
-        if ($this->getId()) {
+        if ($this->getId() === null) {
             return '';
         }
 

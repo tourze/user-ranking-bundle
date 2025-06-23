@@ -68,8 +68,8 @@ class UserRankingBlacklistTest extends TestCase
 
     public function testGetterAndSetterForValid(): void
     {
-        // 默认值应该是 false
-        $this->assertFalse($this->blacklist->isValid());
+        // 默认值应该是 true
+        $this->assertTrue($this->blacklist->isValid());
 
         // 设置为 true
         $this->blacklist->setValid(true);
@@ -124,22 +124,18 @@ class UserRankingBlacklistTest extends TestCase
         $now = new \DateTimeImmutable();
         
         // 没有设置解封时间，应该是已屏蔽的
-        if (method_exists($this->blacklist, 'isBlocked')) {
-            $this->assertTrue($this->blacklist->isBlocked($now));
+        $this->assertTrue($this->blacklist->isBlocked($now));
 
-            // 设置过去的解封时间，应该不再被屏蔽
-            $pastTime = new \DateTimeImmutable();
-            $pastTime = $pastTime->modify('-1 day');
-            $this->blacklist->setUnblockTime($pastTime);
-            $this->assertFalse($this->blacklist->isBlocked($now));
+        // 设置过去的解封时间，应该不再被屏蔽
+        $pastTime = new \DateTimeImmutable();
+        $pastTime = $pastTime->modify('-1 day');
+        $this->blacklist->setUnblockTime($pastTime);
+        $this->assertFalse($this->blacklist->isBlocked($now));
 
-            // 设置未来的解封时间，应该仍然被屏蔽
-            $futureTime = new \DateTimeImmutable();
-            $futureTime = $futureTime->modify('+1 day');
-            $this->blacklist->setUnblockTime($futureTime);
-            $this->assertTrue($this->blacklist->isBlocked($now));
-        } else {
-            $this->markTestSkipped('isBlocked 方法不存在');
-        }
+        // 设置未来的解封时间，应该仍然被屏蔽
+        $futureTime = new \DateTimeImmutable();
+        $futureTime = $futureTime->modify('+1 day');
+        $this->blacklist->setUnblockTime($futureTime);
+        $this->assertTrue($this->blacklist->isBlocked($now));
     }
 }

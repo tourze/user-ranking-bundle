@@ -61,8 +61,8 @@ class UserRankingListTest extends TestCase
 
     public function testGetterAndSetterForValid(): void
     {
-        // 默认值应该是 false
-        $this->assertFalse($this->userRankingList->isValid());
+        // 默认值应该是 true
+        $this->assertTrue($this->userRankingList->isValid());
 
         // 设置为 true
         $this->userRankingList->setValid(true);

@@ -13,14 +13,13 @@ use UserRankingBundle\Entity\UserRankingBlacklist;
 
 #[AsCronTask('*/5 * * * *')]
 #[AsCommand(
-    name: BlacklistCleanupCommand::COMMAND,
+    name: self::NAME,
     description: '清理已过期的排行榜黑名单记录',
 )]
 class BlacklistCleanupCommand extends Command
 {
     
-    public const NAME = 'app:-blacklist-cleanup';
-public const COMMAND = 'user-ranking:blacklist:cleanup';
+    public const NAME = 'user-ranking:blacklist-cleanup';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,

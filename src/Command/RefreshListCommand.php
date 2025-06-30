@@ -14,7 +14,7 @@ use UserRankingBundle\Entity\UserRankingList;
 use UserRankingBundle\Enum\RefreshFrequency;
 use UserRankingBundle\Repository\UserRankingListRepository;
 
-#[AsCronTask('* * * * *')]
+#[AsCronTask(expression: '* * * * *')]
 #[AsCommand(
     name: self::NAME,
     description: '批量计算排行榜排名',
@@ -22,7 +22,7 @@ use UserRankingBundle\Repository\UserRankingListRepository;
 class RefreshListCommand extends Command
 {
     
-    public const NAME = 'user-ranking:calculate';
+    public const NAME = 'user-ranking:refresh-list';
 public function __construct(
         private readonly UserRankingListRepository $listRepository,
         private readonly MessageBusInterface $messageBus,

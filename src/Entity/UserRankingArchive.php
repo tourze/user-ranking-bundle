@@ -24,23 +24,23 @@ class UserRankingArchive implements \Stringable
     }
     use TimestampableAware;
 
-    #[Groups(['restful_read'])]
+    #[Groups(groups: ['restful_read'])]
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     private UserRankingList $list;
 
-    #[Groups(['admin_curd', 'restful_read'])]
+    #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(options: ['comment' => '排名'])]
     private int $number;
 
-    #[Groups(['admin_curd', 'restful_read'])]
+    #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::STRING, options: ['comment' => '用户ID'])]
     private string $userId;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true, options: ['comment' => '分数'])]
     private ?int $score = null;
 
-    #[Groups(['admin_curd', 'restful_read'])]
+    #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, options: ['comment' => '归档时间'])]
     private \DateTimeInterface $archiveTime;
 

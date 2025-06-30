@@ -11,7 +11,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Tourze\Symfony\CronJob\Attribute\AsCronTask;
 use UserRankingBundle\Entity\UserRankingBlacklist;
 
-#[AsCronTask('*/5 * * * *')]
+#[AsCronTask(expression: '*/5 * * * *')]
 #[AsCommand(
     name: self::NAME,
     description: '清理已过期的排行榜黑名单记录',

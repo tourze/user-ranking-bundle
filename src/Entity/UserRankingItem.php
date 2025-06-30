@@ -5,7 +5,7 @@ namespace UserRankingBundle\Entity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
-use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
+use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineTrackBundle\Attribute\TrackColumn;
 use Tourze\DoctrineUserBundle\Traits\BlameableAware;
@@ -17,36 +17,31 @@ use UserRankingBundle\Repository\UserRankingItemRepository;
 #[ORM\UniqueConstraint(name: 'user_ranking_item_uniq_2', columns: ['list_id', 'user_id'])]
 class UserRankingItem implements \Stringable
 {
+    use SnowflakeKeyAware;
     use TimestampableAware;
     use BlameableAware;
-
-    #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
-    #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
-    private ?string $id = null;
 
     #[TrackColumn]
     #[ORM\Column(type: Types::BOOLEAN, nullable: false, options: ['default' => true, 'comment' => '是否有效'])]
     private ?bool $valid = true;
 
-    #[Groups(['restful_read'])]
+    #[Groups(groups: ['restful_read'])]
     #[ORM\ManyToOne(inversedBy: 'items')]
     #[ORM\JoinColumn(nullable: false)]
     private ?UserRankingList $list = null;
 
-    #[Groups(['admin_curd', 'restful_read'])]
+    #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(options: ['comment' => '排名'])]
     private ?int $number = null;
 
     /**
      * @var string|null 因为考虑兼容旧系统，所以暂时改成存ID没外键
      */
-    #[Groups(['admin_curd', 'restful_read'])]
+    #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::BIGINT, options: ['comment' => 'USER ID'])]
     private ?string $userId = null;
 
-    #[Groups(['admin_curd', 'restful_read'])]
+    #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(length: 500, nullable: true, options: ['comment' => '上榜理由'])]
     private ?string $textReason = null;
 
@@ -56,11 +51,11 @@ class UserRankingItem implements \Stringable
     #[ORM\Column(type: Types::BOOLEAN, nullable: false, options: ['comment' => '固定排名'])]
     private ?bool $fixed = false;
 
-    #[Groups(['admin_curd', 'restful_read'])]
+    #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true, options: ['comment' => '推荐人头像'])]
     private ?string $recommendThumb = null;
 
-    #[Groups(['admin_curd', 'restful_read'])]
+    #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '推荐理由'])]
     private ?string $recommendReason = null;
 
@@ -69,10 +64,6 @@ class UserRankingItem implements \Stringable
         return "{$this->getList()?->getTitle()} - {$this->getNumber()}";
     }
 
-    public function getId(): ?string
-    {
-        return $this->id;
-    }
 
     public function isValid(): ?bool
     {

@@ -20,7 +20,7 @@ class RefreshListCommandTest extends TestCase
         $application->add($command);
         
         // 验证命令已注册
-        $this->assertTrue($application->has('user-ranking:calculate'));
-        $this->assertInstanceOf(RefreshListCommand::class, $application->find('user-ranking:calculate'));
+        $this->assertTrue($application->has('user-ranking:refresh-list'));
+        $this->assertInstanceOf(RefreshListCommand::class, $application->find('user-ranking:refresh-list'));
     }
 } 

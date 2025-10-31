@@ -4,21 +4,35 @@ namespace UserRankingBundle\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Tourze\PHPUnitSymfonyKernelTest\Attribute\AsRepository;
 use UserRankingBundle\Entity\UserRankingBlacklist;
 use UserRankingBundle\Entity\UserRankingList;
 
 /**
- * @method UserRankingBlacklist|null find($id, $lockMode = null, $lockVersion = null)
- * @method UserRankingBlacklist|null findOneBy(array $criteria, array $orderBy = null)
- * @method UserRankingBlacklist[]    findAll()
- * @method UserRankingBlacklist[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+ * @extends ServiceEntityRepository<UserRankingBlacklist>
  */
+#[AsRepository(entityClass: UserRankingBlacklist::class)]
 class UserRankingBlacklistRepository extends ServiceEntityRepository
 {
-
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, UserRankingBlacklist::class);
+    }
+
+    public function save(UserRankingBlacklist $entity, bool $flush = true): void
+    {
+        $this->getEntityManager()->persist($entity);
+        if ($flush) {
+            $this->getEntityManager()->flush();
+        }
+    }
+
+    public function remove(UserRankingBlacklist $entity, bool $flush = true): void
+    {
+        $this->getEntityManager()->remove($entity);
+        if ($flush) {
+            $this->getEntityManager()->flush();
+        }
     }
 
     /**
@@ -26,11 +40,13 @@ class UserRankingBlacklistRepository extends ServiceEntityRepository
      */
     public function findByUserIdAndList(string $userId, UserRankingList $list): ?UserRankingBlacklist
     {
-        return $this->findOneBy([
+        $result = $this->findOneBy([
             'userId' => $userId,
             'list' => $list,
             'valid' => true,
         ]);
+
+        return $result instanceof UserRankingBlacklist ? $result : null;
     }
 
     /**
@@ -41,18 +57,24 @@ class UserRankingBlacklistRepository extends ServiceEntityRepository
     public function removeExpired(): int
     {
         $now = new \DateTimeImmutable();
-        
+
         $qb = $this->createQueryBuilder('b')
             ->delete()
             ->where('b.expireTime IS NOT NULL')
             ->andWhere('b.expireTime < :now')
-            ->setParameter('now', $now);
-            
-        return $qb->getQuery()->execute();
+            ->setParameter('now', $now)
+        ;
+
+        $result = $qb->getQuery()->execute();
+        assert(is_int($result));
+
+        return $result;
     }
 
     /**
      * 获取当前被拉黑的用户ID列表
+     *
+     * @return array<string>
      */
     public function getBlockedUserIds(UserRankingList $list, \DateTimeInterface $now): array
     {
@@ -62,7 +84,8 @@ class UserRankingBlacklistRepository extends ServiceEntityRepository
             ->andWhere('b.valid = true')
             ->andWhere('b.unblockTime IS NULL OR b.unblockTime > :now')
             ->setParameter('list', $list)
-            ->setParameter('now', $now);
+            ->setParameter('now', $now)
+        ;
 
         return array_column($qb->getQuery()->getArrayResult(), 'userId');
     }

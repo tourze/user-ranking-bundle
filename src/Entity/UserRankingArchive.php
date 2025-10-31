@@ -5,6 +5,7 @@ namespace UserRankingBundle\Entity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use UserRankingBundle\Repository\UserRankingArchiveRepository;
 
@@ -13,43 +14,45 @@ use UserRankingBundle\Repository\UserRankingArchiveRepository;
 #[ORM\Entity(repositoryClass: UserRankingArchiveRepository::class)]
 class UserRankingArchive implements \Stringable
 {
+    use TimestampableAware;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER, options: ['comment' => 'ID'])]
-    private ?int $id = 0;
+    private int $id = 0;
 
-    public function getId(): ?int
+    public function getId(): int
     {
         return $this->id;
     }
-    use TimestampableAware;
 
     #[Groups(groups: ['restful_read'])]
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(cascade: ['persist'])]
     #[ORM\JoinColumn(nullable: false)]
     private UserRankingList $list;
 
     #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(options: ['comment' => '排名'])]
+    #[Assert\PositiveOrZero]
     private int $number;
 
     #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::STRING, options: ['comment' => '用户ID'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private string $userId;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true, options: ['comment' => '分数'])]
+    #[Assert\PositiveOrZero]
     private ?int $score = null;
 
     #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, options: ['comment' => '归档时间'])]
+    #[Assert\NotNull]
     private \DateTimeInterface $archiveTime;
 
     public function __toString(): string
     {
-        if ($this->getId() === null) {
-            return '';
-        }
-
         return (string) $this->getId();
     }
 
@@ -58,11 +61,9 @@ class UserRankingArchive implements \Stringable
         return $this->list;
     }
 
-    public function setList(UserRankingList $list): self
+    public function setList(UserRankingList $list): void
     {
         $this->list = $list;
-
-        return $this;
     }
 
     public function getNumber(): int
@@ -70,11 +71,9 @@ class UserRankingArchive implements \Stringable
         return $this->number;
     }
 
-    public function setNumber(int $number): self
+    public function setNumber(int $number): void
     {
         $this->number = $number;
-
-        return $this;
     }
 
     public function getUserId(): string
@@ -82,11 +81,9 @@ class UserRankingArchive implements \Stringable
         return $this->userId;
     }
 
-    public function setUserId(string $userId): self
+    public function setUserId(string $userId): void
     {
         $this->userId = $userId;
-
-        return $this;
     }
 
     public function getScore(): ?int
@@ -94,11 +91,9 @@ class UserRankingArchive implements \Stringable
         return $this->score;
     }
 
-    public function setScore(?int $score): self
+    public function setScore(?int $score): void
     {
         $this->score = $score;
-
-        return $this;
     }
 
     public function getArchiveTime(): \DateTimeInterface
@@ -106,10 +101,8 @@ class UserRankingArchive implements \Stringable
         return $this->archiveTime;
     }
 
-    public function setArchiveTime(\DateTimeInterface $archiveTime): self
+    public function setArchiveTime(\DateTimeInterface $archiveTime): void
     {
         $this->archiveTime = $archiveTime;
-
-        return $this;
     }
 }

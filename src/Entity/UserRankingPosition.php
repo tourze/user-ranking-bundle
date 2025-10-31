@@ -8,6 +8,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\Ignore;
+use Symfony\Component\Validator\Constraints as Assert;
 use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 use Tourze\DoctrineTrackBundle\Attribute\TrackColumn;
@@ -24,12 +25,15 @@ class UserRankingPosition implements \Stringable
 
     #[TrackColumn]
     #[ORM\Column(type: Types::BOOLEAN, nullable: false, options: ['default' => true, 'comment' => '是否有效'])]
+    #[Assert\NotNull]
     private ?bool $valid = true;
 
     #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::STRING, length: 50, unique: true, nullable: true, options: ['comment' => '名称'])]
+    #[Assert\Length(max: 50)]
     private ?string $title = null;
 
+    /** @var Collection<int, UserRankingList> */
     #[Ignore]
     #[ORM\ManyToMany(targetEntity: UserRankingList::class, mappedBy: 'positions', fetch: 'EXTRA_LAZY')]
     private Collection $lists;
@@ -41,24 +45,21 @@ class UserRankingPosition implements \Stringable
 
     public function __toString(): string
     {
-        if ($this->getId() === null) {
+        if (null === $this->getId()) {
             return '';
         }
 
         return "{$this->getTitle()}";
     }
 
-
     public function isValid(): ?bool
     {
         return $this->valid;
     }
 
-    public function setValid(?bool $valid): self
+    public function setValid(?bool $valid): void
     {
         $this->valid = $valid;
-
-        return $this;
     }
 
     public function getTitle(): ?string
@@ -66,11 +67,9 @@ class UserRankingPosition implements \Stringable
         return $this->title;
     }
 
-    public function setTitle(?string $title): self
+    public function setTitle(?string $title): void
     {
         $this->title = $title;
-
-        return $this;
     }
 
     /**
@@ -81,22 +80,18 @@ class UserRankingPosition implements \Stringable
         return $this->lists;
     }
 
-    public function addList(UserRankingList $list): self
+    public function addList(UserRankingList $list): void
     {
         if (!$this->lists->contains($list)) {
             $this->lists->add($list);
             $list->addPosition($this);
         }
-
-        return $this;
     }
 
-    public function removeList(UserRankingList $list): self
+    public function removeList(UserRankingList $list): void
     {
         if ($this->lists->removeElement($list)) {
             $list->removePosition($this);
         }
-
-        return $this;
     }
 }

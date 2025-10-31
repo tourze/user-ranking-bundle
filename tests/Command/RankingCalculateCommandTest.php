@@ -1,0 +1,239 @@
+<?php
+
+declare(strict_types=1);
+
+namespace UserRankingBundle\Tests\Command;
+
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Tester\CommandTester;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractCommandTestCase;
+use UserRankingBundle\Command\RankingCalculateCommand;
+use UserRankingBundle\Entity\UserRankingList;
+use UserRankingBundle\Enum\RefreshFrequency;
+
+/**
+ * @internal
+ */
+#[RunTestsInSeparateProcesses]
+#[CoversClass(RankingCalculateCommand::class)]
+final class RankingCalculateCommandTest extends AbstractCommandTestCase
+{
+    private CommandTester $commandTester;
+
+    protected function getCommandTester(): CommandTester
+    {
+        return $this->commandTester;
+    }
+
+    protected function onSetUp(): void
+    {
+        $command = self::getService(RankingCalculateCommand::class);
+        $this->assertInstanceOf(RankingCalculateCommand::class, $command);
+        $this->commandTester = new CommandTester($command);
+    }
+
+    public function testCommandIsRegistered(): void
+    {
+        $command = self::getService(RankingCalculateCommand::class);
+        $this->assertInstanceOf(Command::class, $command);
+        $this->assertSame(RankingCalculateCommand::NAME, $command->getName());
+    }
+
+    public function testExecuteWithNonExistentList(): void
+    {
+        $this->commandTester->execute(['list-id' => '999']);
+        $this->assertSame(1, $this->commandTester->getStatusCode());
+        $this->assertStringContainsString('排行榜 999 不存在', $this->commandTester->getDisplay());
+    }
+
+    public function testExecuteWithNoValidLists(): void
+    {
+        // 清空所有现有的排行榜数据
+        $em = self::getEntityManager();
+        $em->createQuery('DELETE FROM UserRankingBundle\Entity\UserRankingList')->execute();
+        $em->flush();
+
+        $this->commandTester->execute([]);
+        $this->assertSame(0, $this->commandTester->getStatusCode());
+        $this->assertStringContainsString('没有找到需要计算的排行榜', $this->commandTester->getDisplay());
+    }
+
+    public function testExecuteWithValidListButNoScoreSql(): void
+    {
+        $list = new UserRankingList();
+        $list->setTitle('Test Ranking');
+        $list->setValid(true);
+
+        $em = self::getEntityManager();
+        $em->persist($list);
+        $em->flush();
+
+        $this->commandTester->execute(['list-id' => (string) $list->getId()]);
+        $this->assertSame(0, $this->commandTester->getStatusCode());
+        $this->assertStringContainsString('未配置计算SQL，跳过', $this->commandTester->getDisplay());
+    }
+
+    public function testExecuteWithDryRunMode(): void
+    {
+        $list = new UserRankingList();
+        $list->setTitle('Test Ranking');
+        $list->setValid(true);
+        $list->setScoreSql('SELECT "user1" as user_id, 100 as score');
+
+        $em = self::getEntityManager();
+        $em->persist($list);
+        $em->flush();
+
+        $this->commandTester->execute(['list-id' => (string) $list->getId(), 'dry-run' => '1']);
+        $this->assertSame(0, $this->commandTester->getStatusCode());
+        $this->assertStringContainsString('空运行完成，未实际更新数据', $this->commandTester->getDisplay());
+    }
+
+    public function testExecuteWithExpiredTimePeriod(): void
+    {
+        $list = new UserRankingList();
+        $list->setTitle('Test Ranking');
+        $list->setValid(true);
+        $list->setScoreSql('SELECT "user1" as user_id, 100 as score');
+        $list->setStartTime(new \DateTimeImmutable('-2 days'));
+        $list->setEndTime(new \DateTimeImmutable('-1 day'));
+
+        $em = self::getEntityManager();
+        $em->persist($list);
+        $em->flush();
+
+        $this->commandTester->execute(['list-id' => (string) $list->getId()]);
+        $this->assertSame(0, $this->commandTester->getStatusCode());
+        $this->assertStringContainsString('正在计算排行榜: Test Ranking', $this->commandTester->getDisplay());
+    }
+
+    public function testExecuteWithFutureTimePeriod(): void
+    {
+        $list = new UserRankingList();
+        $list->setTitle('Test Ranking');
+        $list->setValid(true);
+        $list->setScoreSql('SELECT "user1" as user_id, 100 as score');
+        $list->setStartTime(new \DateTimeImmutable('+1 day'));
+        $list->setEndTime(new \DateTimeImmutable('+2 days'));
+
+        $em = self::getEntityManager();
+        $em->persist($list);
+        $em->flush();
+
+        $this->commandTester->execute(['list-id' => (string) $list->getId()]);
+        $this->assertSame(0, $this->commandTester->getStatusCode());
+        $this->assertStringContainsString('正在计算排行榜: Test Ranking', $this->commandTester->getDisplay());
+    }
+
+    public function testExecuteWithValidTimePeriod(): void
+    {
+        $list = new UserRankingList();
+        $list->setTitle('Test Ranking');
+        $list->setValid(true);
+        $list->setScoreSql('SELECT "user1" as user_id, 100 as score');
+        $list->setStartTime(new \DateTimeImmutable('-1 day'));
+        $list->setEndTime(new \DateTimeImmutable('+1 day'));
+
+        $em = self::getEntityManager();
+        $em->persist($list);
+        $em->flush();
+
+        $this->commandTester->execute(['list-id' => (string) $list->getId()]);
+        $this->assertSame(0, $this->commandTester->getStatusCode());
+        $this->assertStringContainsString('正在计算排行榜: Test Ranking', $this->commandTester->getDisplay());
+    }
+
+    public function testExecuteWithMultipleValidLists(): void
+    {
+        $list1 = new UserRankingList();
+        $list1->setTitle('Test Ranking 1');
+        $list1->setValid(true);
+        $list1->setScoreSql('SELECT "user1" as user_id, 100 as score');
+        $list1->setRefreshFrequency(RefreshFrequency::DAILY);
+
+        $list2 = new UserRankingList();
+        $list2->setTitle('Test Ranking 2');
+        $list2->setValid(true);
+        $list2->setScoreSql('SELECT "user2" as user_id, 90 as score');
+        $list2->setRefreshFrequency(RefreshFrequency::DAILY);
+
+        $em = self::getEntityManager();
+        $em->persist($list1);
+        $em->persist($list2);
+        $em->flush();
+
+        $this->commandTester->execute([]);
+        $this->assertSame(0, $this->commandTester->getStatusCode());
+        $this->assertStringContainsString('正在计算排行榜: Test Ranking 1', $this->commandTester->getDisplay());
+        $this->assertStringContainsString('正在计算排行榜: Test Ranking 2', $this->commandTester->getDisplay());
+    }
+
+    public function testExecuteWithInvalidLists(): void
+    {
+        // 清空所有现有的排行榜数据
+        $em = self::getEntityManager();
+        $em->createQuery('DELETE FROM UserRankingBundle\Entity\UserRankingList')->execute();
+        $em->flush();
+
+        $list = new UserRankingList();
+        $list->setTitle('Invalid Ranking');
+        $list->setValid(false);
+        $list->setScoreSql('SELECT "user1" as user_id, 100 as score');
+
+        $em->persist($list);
+        $em->flush();
+
+        $this->commandTester->execute([]);
+        $this->assertSame(0, $this->commandTester->getStatusCode());
+        $this->assertStringContainsString('没有找到需要计算的排行榜', $this->commandTester->getDisplay());
+    }
+
+    public function testArgumentListId(): void
+    {
+        $list = new UserRankingList();
+        $list->setTitle('Test Ranking');
+        $list->setValid(true);
+        $list->setScoreSql('SELECT "user1" as user_id, 100 as score');
+
+        $em = self::getEntityManager();
+        $em->persist($list);
+        $em->flush();
+
+        // Test with valid list-id
+        $this->commandTester->execute(['list-id' => (string) $list->getId()]);
+        $this->assertSame(0, $this->commandTester->getStatusCode());
+
+        // Test with invalid list-id
+        $this->commandTester->execute(['list-id' => '999']);
+        $this->assertSame(1, $this->commandTester->getStatusCode());
+    }
+
+    public function testArgumentDryRun(): void
+    {
+        $list = new UserRankingList();
+        $list->setTitle('Test Ranking');
+        $list->setValid(true);
+        $list->setScoreSql('SELECT "user1" as user_id, 100 as score');
+
+        $em = self::getEntityManager();
+        $em->persist($list);
+        $em->flush();
+
+        // Test with dry-run = 1
+        $this->commandTester->execute([
+            'list-id' => (string) $list->getId(),
+            'dry-run' => '1',
+        ]);
+        $this->assertSame(0, $this->commandTester->getStatusCode());
+        $this->assertStringContainsString('空运行完成，未实际更新数据', $this->commandTester->getDisplay());
+
+        // Test with dry-run = 0
+        $this->commandTester->execute([
+            'list-id' => (string) $list->getId(),
+            'dry-run' => '0',
+        ]);
+        $this->assertSame(0, $this->commandTester->getStatusCode());
+    }
+}

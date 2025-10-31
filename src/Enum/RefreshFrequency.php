@@ -1,14 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace UserRankingBundle\Enum;
 
+use Tourze\EnumExtra\BadgeInterface;
 use Tourze\EnumExtra\Itemable;
 use Tourze\EnumExtra\ItemTrait;
 use Tourze\EnumExtra\Labelable;
 use Tourze\EnumExtra\Selectable;
 use Tourze\EnumExtra\SelectTrait;
 
-enum RefreshFrequency: string implements Labelable, Itemable, Selectable
+enum RefreshFrequency: string implements Labelable, Itemable, Selectable, BadgeInterface
 {
     use ItemTrait;
     use SelectTrait;
@@ -47,6 +50,20 @@ enum RefreshFrequency: string implements Labelable, Itemable, Selectable
             self::DAILY => 86400,
             self::WEEKLY => 86400 * 7,
             self::MONTHLY => 86400 * 30,
+        };
+    }
+
+    public function getBadge(): string
+    {
+        return match ($this) {
+            self::EVERY_MINUTE => self::INFO,
+            self::EVERY_FIVE_MINUTES => self::INFO,
+            self::EVERY_FIFTEEN_MINUTES => self::PRIMARY,
+            self::EVERY_THIRTY_MINUTES => self::PRIMARY,
+            self::HOURLY => self::SUCCESS,
+            self::DAILY => self::SUCCESS,
+            self::WEEKLY => self::WARNING,
+            self::MONTHLY => self::WARNING,
         };
     }
 }

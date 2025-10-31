@@ -2,7 +2,6 @@
 
 namespace UserRankingBundle\Command;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -10,6 +9,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Tourze\Symfony\CronJob\Attribute\AsCronTask;
 use UserRankingBundle\Entity\UserRankingBlacklist;
+use UserRankingBundle\Repository\UserRankingBlacklistRepository;
 
 #[AsCronTask(expression: '*/5 * * * *')]
 #[AsCommand(
@@ -18,11 +18,10 @@ use UserRankingBundle\Entity\UserRankingBlacklist;
 )]
 class BlacklistCleanupCommand extends Command
 {
-    
     public const NAME = 'user-ranking:blacklist-cleanup';
 
     public function __construct(
-        private readonly EntityManagerInterface $entityManager,
+        private readonly UserRankingBlacklistRepository $blacklistRepository,
     ) {
         parent::__construct();
     }
@@ -34,16 +33,18 @@ class BlacklistCleanupCommand extends Command
 
         try {
             // 查找已过期但仍然有效的黑名单记录
-            $qb = $this->entityManager->createQueryBuilder();
+            $qb = $this->blacklistRepository->createQueryBuilder('b');
             $qb->update(UserRankingBlacklist::class, 'b')
                 ->set('b.valid', ':valid')
                 ->where('b.valid = true')
                 ->andWhere('b.unblockTime IS NOT NULL')
                 ->andWhere('b.unblockTime <= :now')
                 ->setParameter('valid', false)
-                ->setParameter('now', $now);
+                ->setParameter('now', $now)
+            ;
 
             $count = $qb->getQuery()->execute();
+            assert(is_int($count));
 
             if ($count > 0) {
                 $io->success(sprintf('成功清理 %d 条已过期的黑名单记录', $count));

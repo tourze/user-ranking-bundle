@@ -5,6 +5,7 @@ namespace UserRankingBundle\Command;
 use Carbon\CarbonImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Monolog\Attribute\WithMonologChannel;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -26,9 +27,9 @@ use UserRankingBundle\Repository\UserRankingListRepository;
     name: self::NAME,
     description: '计算用户排行榜排名',
 )]
+#[WithMonologChannel(channel: 'user_ranking')]
 class RankingCalculateCommand extends Command
 {
-    
     public const NAME = 'user-ranking:calculate';
 
     public function __construct(
@@ -54,14 +55,15 @@ class RankingCalculateCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $listId = $input->getArgument('list-id');
-        $isDryRun = $input->getArgument('dry-run');
+        $isDryRun = (bool) $input->getArgument('dry-run');
 
         // 获取需要计算的排行榜
         $lists = [];
-        if ((bool) $listId) {
+        if (null !== $listId) {
             $list = $this->listRepository->find($listId);
-            if ($list === null) {
-                $io->error(sprintf('排行榜 %s 不存在', $listId));
+            if (null === $list) {
+                assert(is_string($listId) || is_int($listId));
+                $io->error(sprintf('排行榜 %s 不存在', (string) $listId));
 
                 return Command::FAILURE;
             }
@@ -70,14 +72,16 @@ class RankingCalculateCommand extends Command
             $lists = $this->listRepository->findBy(['valid' => true]);
         }
 
-        if ((bool) empty($lists)) {
+        if (0 === count($lists)) {
             $io->warning('没有找到需要计算的排行榜');
 
             return Command::SUCCESS;
         }
 
         foreach ($lists as $list) {
-            $this->calculateRanking($list, $io, $isDryRun);
+            if ($list instanceof UserRankingList) {
+                $this->calculateRanking($list, $io, $isDryRun);
+            }
         }
 
         return Command::SUCCESS;
@@ -87,166 +91,325 @@ class RankingCalculateCommand extends Command
     {
         $io->section(sprintf('正在计算排行榜: %s', $list->getTitle()));
 
-        // 检查是否有计算SQL
-        if ($list->getScoreSql() === null) {
+        if (!$this->shouldCalculateRanking($list, $io)) {
+            return;
+        }
+
+        try {
+            $this->performRankingCalculation($list, $io, $isDryRun);
+        } catch (\Throwable $e) {
+            $io->error(sprintf('计算失败: %s', $e->getMessage()));
+        }
+    }
+
+    private function shouldCalculateRanking(UserRankingList $list, SymfonyStyle $io): bool
+    {
+        if (null === $list->getScoreSql()) {
             $io->warning('未配置计算SQL，跳过');
+
+            return false;
+        }
+
+        if (!$this->isInValidTimePeriod($list)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function isInValidTimePeriod(UserRankingList $list): bool
+    {
+        if (null !== $list->getStartTime() && null !== $list->getEndTime()) {
+            $now = CarbonImmutable::now();
+
+            return !($now->lessThan($list->getStartTime()) || $now->greaterThan($list->getEndTime()));
+        }
+
+        return true;
+    }
+
+    private function performRankingCalculation(UserRankingList $list, SymfonyStyle $io, bool $isDryRun): void
+    {
+        $now = new \DateTimeImmutable();
+        $blockedUserIds = $this->blacklistRepository->getBlockedUserIds($list, $now);
+        $scoreSql = $list->getScoreSql();
+        if (null === $scoreSql) {
+            $this->handleEmptyScores($list, $io);
+
+            return;
+        }
+        $scores = $this->connection->fetchAllAssociative($scoreSql);
+
+        if ([] === $scores) {
+            $this->handleEmptyScores($list, $io);
 
             return;
         }
 
-        if ($list->getStartTime() !== null && $list->getEndTime() !== null) {
-            if (CarbonImmutable::now()->lessThan($list->getStartTime()) || CarbonImmutable::now()->greaterThan($list->getEndTime())) {
-                return;
+        $validScores = $this->filterAndSortScores($this->normalizeScores($scores), $blockedUserIds);
+        $fixedItems = $this->getFixedItems($list);
+        $newRankings = $this->calculateNewRankings($list, $validScores, $fixedItems, $blockedUserIds, $io, $isDryRun);
+
+        if (!$isDryRun) {
+            $this->persistRankings($list, $newRankings, $io);
+        } else {
+            $io->note('空运行完成，未实际更新数据');
+        }
+    }
+
+    private function handleEmptyScores(UserRankingList $list, SymfonyStyle $io): void
+    {
+        $qb = $this->itemRepository->createQueryBuilder('i');
+        $qb->delete(UserRankingItem::class, 'i')
+            ->where('i.list = :list')
+            ->setParameter('list', $list)
+            ->getQuery()
+            ->execute()
+        ;
+
+        $list->updateRefreshTime();
+        $this->entityManager->persist($list);
+        $this->entityManager->flush();
+        $io->warning('计算结果为空');
+    }
+
+    /**
+     * @param array<array<string, mixed>> $scores
+     * @return array<array{user_id: string, score: int}>
+     */
+    private function normalizeScores(array $scores): array
+    {
+        $normalized = [];
+        foreach ($scores as $score) {
+            if (isset($score['user_id'], $score['score'])) {
+                $userId = $score['user_id'];
+                $scoreValue = $score['score'];
+                assert(is_string($userId) || is_int($userId));
+                assert(is_string($scoreValue) || is_int($scoreValue));
+                $normalized[] = [
+                    'user_id' => (string) $userId,
+                    'score' => (int) $scoreValue,
+                ];
             }
         }
 
-        try {
-            $now = new \DateTimeImmutable();
+        return $normalized;
+    }
 
-            // 获取黑名单用户ID列表
-            $blockedUserIds = $this->blacklistRepository->getBlockedUserIds($list, $now);
+    /**
+     * @param array<array{user_id: string, score: int}> $scores
+     * @param array<string> $blockedUserIds
+     * @return array<array{user_id: string, score: int}>
+     */
+    private function filterAndSortScores(array $scores, array $blockedUserIds): array
+    {
+        $validScores = array_filter($scores, fn ($score) => !in_array($score['user_id'], $blockedUserIds, true));
+        usort($validScores, fn ($a, $b) => $b['score'] - $a['score']);
 
-            // 执行计算SQL获取分数
-            $scores = $this->connection->fetchAllAssociative($list->getScoreSql());
+        return $validScores;
+    }
 
-            if ((bool) empty($scores)) {
-                // 为空的时候要把之前的数据都删掉
-                $qb = $this->entityManager->createQueryBuilder();
-                $qb->delete(UserRankingItem::class, 'i')
-                    ->where('i.list = :list')
-                    ->setParameter('list', $list)
-                    ->getQuery()
-                    ->execute();
-                $list->updateRefreshTime();
-                $this->entityManager->persist($list);
-                $this->entityManager->flush();
-                $io->warning('计算结果为空');
+    /**
+     * @return array<UserRankingItem>
+     */
+    private function getFixedItems(UserRankingList $list): array
+    {
+        return $this->itemRepository->findBy(['list' => $list, 'fixed' => true], ['number' => 'ASC']);
+    }
 
-                return;
+    /**
+     * @param array<array{user_id: string, score: int}> $scores
+     * @param array<UserRankingItem> $fixedItems
+     * @param array<string> $blockedUserIds
+     * @return array<UserRankingItem>
+     */
+    private function calculateNewRankings(UserRankingList $list, array $scores, array $fixedItems, array $blockedUserIds, SymfonyStyle $io, bool $isDryRun): array
+    {
+        $fixedNumbers = array_map(fn (UserRankingItem $item): int => $item->getNumber() ?? 0, $fixedItems);
+        $fixedUserNumbers = $this->buildFixedUserNumbersMap($fixedItems);
+        $newRankings = $this->processFixedRankings($fixedItems, $blockedUserIds);
+
+        $currentRank = 1;
+        foreach ($scores as $score) {
+            $userId = $score['user_id'];
+
+            if (!$this->isUserValidForRanking($userId, $fixedUserNumbers)) {
+                continue;
             }
 
-            // 过滤黑名单用户并按分数排序
-            $scores = array_filter($scores, fn ($score) => !in_array($score['user_id'], $blockedUserIds));
-            usort($scores, fn ($a, $b) => $b['score'] - $a['score']);
+            $currentRank = $this->findNextAvailableRank($currentRank, $fixedNumbers);
 
-            // 获取现有的固定排名
-            $fixedItems = $this->itemRepository->findBy(['list' => $list, 'fixed' => true], ['number' => 'ASC']);
-
-            $fixedNumbers = array_map(fn ($item) => $item->getNumber(), $fixedItems);
-            // 记录固定排名用户的number映射
-            $fixedUserNumbers = [];
-            foreach ($fixedItems as $item) {
-                $fixedUserNumbers[$item->getUserId()] = $item->getNumber();
+            if ($this->exceedsCountLimit($list, $currentRank)) {
+                break;
             }
 
-            // 开始分配排名
-            $currentRank = 1;
-            $processed = [];
-            $newRankings = [];
+            if ($isDryRun) {
+                $this->outputDryRunInfo($io, $userId, $currentRank, $score['score']);
+            } else {
+                $newRankings[] = $this->createRankingItem($list, $userId, $currentRank, $score['score']);
+            }
 
-            // 先处理固定排名
-            foreach ($fixedItems as $item) {
-                // 如果固定排名用户被拉黑，跳过处理
-                if (in_array($item->getUserId(), $blockedUserIds)) {
-                    continue;
-                }
-                $processed[$item->getUserId()] = true;
-                // 保留固定排名记录
+            ++$currentRank;
+        }
+
+        return $newRankings;
+    }
+
+    /**
+     * @param array<UserRankingItem> $fixedItems
+     * @return array<string, int>
+     */
+    private function buildFixedUserNumbersMap(array $fixedItems): array
+    {
+        $fixedUserNumbers = [];
+        foreach ($fixedItems as $item) {
+            $userId = $item->getUserId();
+            $number = $item->getNumber();
+            if (null !== $userId && null !== $number) {
+                $fixedUserNumbers[$userId] = $number;
+            }
+        }
+
+        return $fixedUserNumbers;
+    }
+
+    /**
+     * @param array<UserRankingItem> $fixedItems
+     * @param array<string> $blockedUserIds
+     * @return array<UserRankingItem>
+     */
+    private function processFixedRankings(array $fixedItems, array $blockedUserIds): array
+    {
+        $newRankings = [];
+        foreach ($fixedItems as $item) {
+            $userId = $item->getUserId();
+            if (null !== $userId && !in_array($userId, $blockedUserIds, true)) {
                 $newRankings[] = $item;
             }
-
-            // 处理动态排名
-            foreach ($scores as $score) {
-                $userId = $score['user_id'];
-                try {
-                    $event = new RankingCalculateCheckUserEvent();
-                    $event->setUserId($userId);
-                    $this->eventDispatcher->dispatch($event);
-                    if ($event->isBlacklist()) {
-                        continue;
-                    }
-                } catch (\Exception $exception) {
-                    $this->logger->error('检查用户黑名单失败', [
-                        'user_id' => $userId,
-                        'error' => $exception,
-                    ]);
-                    continue;
-                }
-
-                // 如果用户有固定排名，使用固定排名
-                if ((bool) isset($fixedUserNumbers[$userId])) {
-                    continue;
-                }
-
-                // 找到下一个可用的排名
-                while (in_array($currentRank, $fixedNumbers)) {
-                    ++$currentRank;
-                }
-
-                // 检查是否超出总名次限制
-                if ($list->getCount() !== null && $currentRank > $list->getCount()) {
-                    break;
-                }
-
-                if ((bool) $isDryRun) {
-                    $io->writeln(sprintf(
-                        '用户 %s 将被设置为第 %d 名，分数: %d',
-                        $userId,
-                        $currentRank,
-                        $score['score']
-                    ));
-                } else {
-                    // 直接创建并存储 UserRankingItem 对象
-                    $item = new UserRankingItem();
-                    $item->setList($list)
-                        ->setUserId($userId)
-                        ->setNumber($currentRank)
-                        ->setScore($score['score'])
-                        ->setFixed(false);
-                    $newRankings[] = $item;
-                }
-
-                ++$currentRank;
-            }
-
-            if (!$isDryRun) {
-                // 开启事务
-                $this->entityManager->beginTransaction();
-                try {
-                    // 删除所有记录（包括固定排名，因为我们已经在 $newRankings 中保存了它们）
-                    $qb = $this->entityManager->createQueryBuilder();
-                    $qb->delete(UserRankingItem::class, 'i')
-                        ->where('i.list = :list')
-                        ->setParameter('list', $list)
-                        ->getQuery()
-                        ->execute();
-
-                    // 批量持久化所有排名记录（包括固定排名）
-                    foreach ($newRankings as $item) {
-                        $this->entityManager->persist($item);
-                    }
-
-                    // 更新刷新时间
-                    $list->updateRefreshTime();
-                    $this->entityManager->flush();
-                    $this->entityManager->commit();
-                    $io->success('排名计算完成');
-
-                    $message = new RunCommandMessage();
-                    $message->setCommand(ArchiveRankingCommand::NAME);
-                    $message->setOptions([
-                        'list-id' => $list->getId(),
-                    ]);
-                    $this->messageBus->dispatch($message);
-                } catch (\Throwable $e) {
-                    $this->entityManager->rollback();
-                    throw $e;
-                }
-            } else {
-                $io->note('空运行完成，未实际更新数据');
-            }
-        } catch (\Throwable $e) {
-            $io->error(sprintf('计算失败: %s', $e->getMessage()));
         }
+
+        return $newRankings;
+    }
+
+    /**
+     * @param array<string, int> $fixedUserNumbers
+     */
+    private function isUserValidForRanking(string $userId, array $fixedUserNumbers): bool
+    {
+        try {
+            $event = new RankingCalculateCheckUserEvent();
+            $event->setUserId($userId);
+            $this->eventDispatcher->dispatch($event);
+
+            if ($event->isBlacklist()) {
+                return false;
+            }
+        } catch (\Exception $exception) {
+            $this->logger->error('检查用户黑名单失败', [
+                'user_id' => $userId,
+                'error' => $exception,
+            ]);
+
+            return false;
+        }
+
+        return !isset($fixedUserNumbers[$userId]);
+    }
+
+    /**
+     * @param array<int> $fixedNumbers
+     */
+    private function findNextAvailableRank(int $currentRank, array $fixedNumbers): int
+    {
+        while (in_array($currentRank, $fixedNumbers, true)) {
+            ++$currentRank;
+        }
+
+        return $currentRank;
+    }
+
+    private function exceedsCountLimit(UserRankingList $list, int $currentRank): bool
+    {
+        return null !== $list->getCount() && $currentRank > $list->getCount();
+    }
+
+    private function outputDryRunInfo(SymfonyStyle $io, string $userId, int $rank, int $score): void
+    {
+        $io->writeln(sprintf(
+            '用户 %s 将被设置为第 %d 名，分数: %d',
+            $userId,
+            $rank,
+            $score
+        ));
+    }
+
+    private function createRankingItem(UserRankingList $list, string $userId, int $rank, int $score): UserRankingItem
+    {
+        $item = new UserRankingItem();
+        $item->setList($list);
+        $item->setUserId($userId);
+        $item->setNumber($rank);
+        $item->setScore($score);
+        $item->setFixed(false);
+
+        return $item;
+    }
+
+    /**
+     * @param array<UserRankingItem> $newRankings
+     */
+    private function persistRankings(UserRankingList $list, array $newRankings, SymfonyStyle $io): void
+    {
+        $this->entityManager->beginTransaction();
+        try {
+            $this->clearExistingRankings($list);
+            $this->saveNewRankings($newRankings);
+            $this->updateListRefreshTime($list);
+
+            $this->entityManager->flush();
+            $this->entityManager->commit();
+            $io->success('排名计算完成');
+
+            $this->dispatchArchiveCommand($list);
+        } catch (\Throwable $e) {
+            $this->entityManager->rollback();
+            throw $e;
+        }
+    }
+
+    private function clearExistingRankings(UserRankingList $list): void
+    {
+        $qb = $this->itemRepository->createQueryBuilder('i');
+        $qb->delete(UserRankingItem::class, 'i')
+            ->where('i.list = :list')
+            ->setParameter('list', $list)
+            ->getQuery()
+            ->execute()
+        ;
+    }
+
+    /**
+     * @param array<UserRankingItem> $newRankings
+     */
+    private function saveNewRankings(array $newRankings): void
+    {
+        foreach ($newRankings as $item) {
+            $this->entityManager->persist($item);
+        }
+    }
+
+    private function updateListRefreshTime(UserRankingList $list): void
+    {
+        $list->updateRefreshTime();
+    }
+
+    private function dispatchArchiveCommand(UserRankingList $list): void
+    {
+        $message = new RunCommandMessage();
+        $message->setCommand(ArchiveRankingCommand::NAME);
+        $message->setOptions([
+            'list-id' => $list->getId(),
+        ]);
+        $this->messageBus->dispatch($message);
     }
 }

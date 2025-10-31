@@ -2,6 +2,7 @@
 
 namespace UserRankingBundle;
 
+use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 use Tourze\AsyncCommandBundle\AsyncCommandBundle;
 use Tourze\BundleDependency\BundleDependencyInterface;
@@ -18,6 +19,7 @@ class UserRankingBundle extends Bundle implements BundleDependencyInterface
     public static function getBundleDependencies(): array
     {
         return [
+            DoctrineBundle::class => ['all' => true],
             AsyncCommandBundle::class => ['all' => true],
             DoctrineSnowflakeBundle::class => ['all' => true],
             DoctrineIndexedBundle::class => ['all' => true],

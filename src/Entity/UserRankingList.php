@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
 use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
@@ -26,51 +27,68 @@ class UserRankingList implements \Stringable, LockEntity
 
     #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::STRING, length: 64, options: ['comment' => '标题'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 64)]
     private ?string $title = null;
 
     #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::STRING, length: 100, nullable: true, options: ['comment' => '副标题'])]
+    #[Assert\Length(max: 100)]
     private ?string $subtitle = null;
 
     #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::STRING, length: 20, options: ['comment' => '颜色'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 20)]
     private ?string $color = '';
 
     #[Groups(groups: ['admin_curd', 'restful_read'])]
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true, options: ['comment' => 'LOGO地址'])]
+    #[Assert\Length(max: 255)]
+    #[Assert\Url]
     private ?string $logoUrl = null;
 
     #[IndexColumn]
     #[ORM\Column(name: 'start_time', type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '开始时间'])]
+    #[Assert\Type(type: '\DateTimeInterface')]
     private ?\DateTimeInterface $startTime = null;
 
     #[IndexColumn]
     #[ORM\Column(name: 'end_time', type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '结束时间'])]
+    #[Assert\Type(type: '\DateTimeInterface')]
     private ?\DateTimeInterface $endTime = null;
 
-    #[ORM\OneToMany(targetEntity: UserRankingItem::class, mappedBy: 'list', orphanRemoval: true)]
+    /** @var Collection<int, UserRankingItem> */
+    #[ORM\OneToMany(mappedBy: 'list', targetEntity: UserRankingItem::class, orphanRemoval: true, cascade: ['persist', 'remove'])]
     private Collection $items;
 
     #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '计算SQL'])]
+    #[Assert\Length(max: 65535)]
     private ?string $scoreSql = null;
 
     #[Groups(groups: ['admin_curd'])]
     #[ORM\Column(type: Types::INTEGER, nullable: true, options: ['comment' => '总名次'])]
+    #[Assert\PositiveOrZero]
     private ?int $count = null;
 
-    #[ORM\ManyToMany(targetEntity: UserRankingPosition::class, inversedBy: 'lists', fetch: 'EXTRA_LAZY')]
+    /** @var Collection<int, UserRankingPosition> */
+    #[ORM\ManyToMany(targetEntity: UserRankingPosition::class, inversedBy: 'lists', fetch: 'EXTRA_LAZY', cascade: ['persist'])]
+    #[ORM\JoinTable(name: 'user_ranking_list_position')]
     private Collection $positions;
 
     #[Groups(groups: ['admin_curd'])]
-    #[ORM\Column(type: Types::STRING, nullable: true, enumType: RefreshFrequency::class, options: ['comment' => '更新频率'])]
+    #[ORM\Column(name: 'refresh_frequency', type: Types::STRING, nullable: true, enumType: RefreshFrequency::class, options: ['comment' => '更新频率'])]
+    #[Assert\Choice(callback: [RefreshFrequency::class, 'cases'])]
     private ?RefreshFrequency $refreshFrequency = RefreshFrequency::EVERY_MINUTE;
 
     #[Groups(groups: ['admin_curd'])]
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '最后刷新时间'])]
+    #[ORM\Column(name: 'refresh_time', type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '最后刷新时间'])]
+    #[Assert\Type(type: '\DateTimeImmutable')]
     private ?\DateTimeImmutable $refreshTime = null;
 
     #[TrackColumn]
     #[ORM\Column(type: Types::BOOLEAN, nullable: false, options: ['default' => true, 'comment' => '是否有效'])]
+    #[Assert\NotNull]
     private ?bool $valid = true;
 
     public function __construct()
@@ -81,24 +99,21 @@ class UserRankingList implements \Stringable, LockEntity
 
     public function __toString(): string
     {
-        if ($this->getId() === null) {
+        if (null === $this->getId()) {
             return '';
         }
 
         return "{$this->getTitle()}";
     }
 
-
     public function isValid(): ?bool
     {
         return $this->valid;
     }
 
-    public function setValid(?bool $valid): self
+    public function setValid(?bool $valid): void
     {
         $this->valid = $valid;
-
-        return $this;
     }
 
     public function getTitle(): ?string
@@ -106,11 +121,9 @@ class UserRankingList implements \Stringable, LockEntity
         return $this->title;
     }
 
-    public function setTitle(string $title): self
+    public function setTitle(string $title): void
     {
         $this->title = $title;
-
-        return $this;
     }
 
     public function getSubtitle(): ?string
@@ -118,11 +131,9 @@ class UserRankingList implements \Stringable, LockEntity
         return $this->subtitle;
     }
 
-    public function setSubtitle(?string $subtitle): self
+    public function setSubtitle(?string $subtitle): void
     {
         $this->subtitle = $subtitle;
-
-        return $this;
     }
 
     public function getLogoUrl(): ?string
@@ -130,11 +141,9 @@ class UserRankingList implements \Stringable, LockEntity
         return $this->logoUrl;
     }
 
-    public function setLogoUrl(?string $logoUrl): self
+    public function setLogoUrl(?string $logoUrl): void
     {
         $this->logoUrl = $logoUrl;
-
-        return $this;
     }
 
     /**
@@ -145,17 +154,15 @@ class UserRankingList implements \Stringable, LockEntity
         return $this->items;
     }
 
-    public function addItem(UserRankingItem $item): self
+    public function addItem(UserRankingItem $item): void
     {
         if (!$this->items->contains($item)) {
             $this->items->add($item);
             $item->setList($this);
         }
-
-        return $this;
     }
 
-    public function removeItem(UserRankingItem $item): self
+    public function removeItem(UserRankingItem $item): void
     {
         if ($this->items->removeElement($item)) {
             // set the owning side to null (unless already changed)
@@ -163,8 +170,6 @@ class UserRankingList implements \Stringable, LockEntity
                 $item->setList(null);
             }
         }
-
-        return $this;
     }
 
     public function getScoreSql(): ?string
@@ -172,11 +177,9 @@ class UserRankingList implements \Stringable, LockEntity
         return $this->scoreSql;
     }
 
-    public function setScoreSql(?string $scoreSql): self
+    public function setScoreSql(?string $scoreSql): void
     {
         $this->scoreSql = $scoreSql;
-
-        return $this;
     }
 
     public function getCount(): ?int
@@ -184,11 +187,9 @@ class UserRankingList implements \Stringable, LockEntity
         return $this->count;
     }
 
-    public function setCount(?int $count): self
+    public function setCount(?int $count): void
     {
         $this->count = $count;
-
-        return $this;
     }
 
     public function getColor(): ?string
@@ -209,20 +210,16 @@ class UserRankingList implements \Stringable, LockEntity
         return $this->positions;
     }
 
-    public function addPosition(UserRankingPosition $position): self
+    public function addPosition(UserRankingPosition $position): void
     {
         if (!$this->positions->contains($position)) {
             $this->positions->add($position);
         }
-
-        return $this;
     }
 
-    public function removePosition(UserRankingPosition $position): self
+    public function removePosition(UserRankingPosition $position): void
     {
         $this->positions->removeElement($position);
-
-        return $this;
     }
 
     public function retrieveLockResource(): string
@@ -235,11 +232,9 @@ class UserRankingList implements \Stringable, LockEntity
         return $this->refreshFrequency;
     }
 
-    public function setRefreshFrequency(?RefreshFrequency $refreshFrequency): self
+    public function setRefreshFrequency(?RefreshFrequency $refreshFrequency): void
     {
         $this->refreshFrequency = $refreshFrequency;
-
-        return $this;
     }
 
     public function getRefreshTime(): ?\DateTimeImmutable
@@ -247,11 +242,9 @@ class UserRankingList implements \Stringable, LockEntity
         return $this->refreshTime;
     }
 
-    public function setRefreshTime(?\DateTimeImmutable $refreshTime): self
+    public function setRefreshTime(?\DateTimeImmutable $refreshTime): void
     {
         $this->refreshTime = $refreshTime;
-
-        return $this;
     }
 
     public function updateRefreshTime(): self
@@ -284,17 +277,17 @@ class UserRankingList implements \Stringable, LockEntity
     public function isInValidPeriod(\DateTimeInterface $now): bool
     {
         // 如果没有设置时间范围，则认为一直有效
-        if ($this->startTime === null && $this->endTime === null) {
+        if (null === $this->startTime && null === $this->endTime) {
             return true;
         }
 
         // 如果只设置了开始时间，检查是否已经开始
-        if ($this->startTime !== null && $this->endTime === null) {
+        if (null !== $this->startTime && null === $this->endTime) {
             return $now >= $this->startTime;
         }
 
         // 如果只设置了结束时间，检查是否已经结束
-        if ($this->startTime === null && $this->endTime !== null) {
+        if (null === $this->startTime && null !== $this->endTime) {
             return $now <= $this->endTime;
         }
 

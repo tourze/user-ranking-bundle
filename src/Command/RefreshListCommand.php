@@ -21,9 +21,9 @@ use UserRankingBundle\Repository\UserRankingListRepository;
 )]
 class RefreshListCommand extends Command
 {
-    
     public const NAME = 'user-ranking:refresh-list';
-public function __construct(
+
+    public function __construct(
         private readonly UserRankingListRepository $listRepository,
         private readonly MessageBusInterface $messageBus,
     ) {
@@ -35,8 +35,9 @@ public function __construct(
         $io = new SymfonyStyle($input, $output);
         $now = new \DateTimeImmutable();
 
-        foreach ($this->listRepository->findBy(['valid' => true]) as $list) {
-            if (!$this->shouldRefresh($list, $now)) {
+        $lists = $this->listRepository->findBy(['valid' => true]);
+        foreach ($lists as $list) {
+            if (!$list instanceof UserRankingList || !$this->shouldRefresh($list, $now)) {
                 continue;
             }
 
@@ -55,13 +56,13 @@ public function __construct(
     {
         // 获取最后刷新时间
         $lastRefresh = $list->getRefreshTime();
-        if ($lastRefresh === null) {
+        if (null === $lastRefresh) {
             return true;
         }
 
         // 获取更新频率
         $frequency = $list->getRefreshFrequency();
-        if ($frequency === null) {
+        if (null === $frequency) {
             return false; // 如果没有设置更新频率，则不更新
         }
 

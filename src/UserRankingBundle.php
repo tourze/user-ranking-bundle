@@ -13,6 +13,7 @@ use Tourze\DoctrineTrackBundle\DoctrineTrackBundle;
 use Tourze\DoctrineUserBundle\DoctrineUserBundle;
 use Tourze\LockServiceBundle\LockServiceBundle;
 use Tourze\Symfony\CronJob\CronJobBundle;
+use Tourze\EasyAdminMenuBundle\EasyAdminMenuBundle;
 
 class UserRankingBundle extends Bundle implements BundleDependencyInterface
 {
@@ -28,6 +29,7 @@ class UserRankingBundle extends Bundle implements BundleDependencyInterface
             DoctrineUserBundle::class => ['all' => true],
             LockServiceBundle::class => ['all' => true],
             CronJobBundle::class => ['all' => true],
+            EasyAdminMenuBundle::class => ['all' => true],
         ];
     }
 }

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace UserRankingBundle\Tests\Controller;
+namespace UserRankingBundle\Tests\Controller\Admin;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Tourze\PHPUnitSymfonyWebTest\AbstractEasyAdminControllerTestCase;
-use UserRankingBundle\Controller\UserRankingItemCrudController;
+use UserRankingBundle\Controller\Admin\UserRankingItemCrudController;
 use UserRankingBundle\Entity\UserRankingItem;
 
 /**

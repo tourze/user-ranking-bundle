@@ -18,7 +18,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
-use Tourze\EasyAdminEnumFieldBundle\Field\EnumField;
 use UserRankingBundle\Entity\UserRankingList;
 use UserRankingBundle\Enum\RefreshFrequency;
 

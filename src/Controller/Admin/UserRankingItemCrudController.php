@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UserRankingBundle\Controller;
+namespace UserRankingBundle\Controller\Admin;
 
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminCrud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -12,33 +12,34 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
-use UserRankingBundle\Entity\UserRankingBlacklist;
+use UserRankingBundle\Entity\UserRankingItem;
 
-#[AdminCrud(routePath: '/user-ranking/blacklist', routeName: 'user_ranking_blacklist')]
-final class UserRankingBlacklistCrudController extends AbstractCrudController
+#[AdminCrud(routePath: '/user-ranking/item', routeName: 'user_ranking_item')]
+final class UserRankingItemCrudController extends AbstractCrudController
 {
     public static function getEntityFqcn(): string
     {
-        return UserRankingBlacklist::class;
+        return UserRankingItem::class;
     }
 
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setEntityLabelInSingular('排行榜黑名单')
-            ->setEntityLabelInPlural('排行榜黑名单')
-            ->setPageTitle('index', '排行榜黑名单列表')
-            ->setPageTitle('detail', '排行榜黑名单详情')
-            ->setPageTitle('edit', '编辑排行榜黑名单')
-            ->setPageTitle('new', '新建排行榜黑名单')
+            ->setEntityLabelInSingular('排行榜项目')
+            ->setEntityLabelInPlural('排行榜项目')
+            ->setPageTitle('index', '排行榜项目列表')
+            ->setPageTitle('detail', '排行榜项目详情')
+            ->setPageTitle('edit', '编辑排行榜项目')
+            ->setPageTitle('new', '新建排行榜项目')
         ;
     }
 
     public function configureFields(string $pageName): iterable
     {
-        yield IdField::new('id', 'ID')
+        yield TextField::new('id', 'ID')
             ->hideOnForm()
         ;
 
@@ -46,31 +47,39 @@ final class UserRankingBlacklistCrudController extends AbstractCrudController
             ->setHelp('所属排行榜')
         ;
 
+        yield IntegerField::new('number', '排名')
+            ->setHelp('用户在排行榜中的排名，必填')
+        ;
+
         yield TextField::new('userId', '用户ID')
-            ->setHelp('被拉黑的用户ID，必填，最多64个字符')
+            ->setHelp('用户ID，必填，最多20个字符')
         ;
 
-        yield TextareaField::new('reason', '拉黑原因')
-            ->setHelp('拉黑的原因说明，可选')
+        yield TextField::new('textReason', '上榜理由')
+            ->setHelp('用户上榜的理由说明，可选，最多500个字符')
             ->hideOnIndex()
         ;
 
-        yield DateTimeField::new('unblockTime', '解封时间')
-            ->setHelp('用户解封时间，可选')
+        yield IntegerField::new('score', '分数')
+            ->setHelp('用户的排行榜分数，可选')
         ;
 
-        yield DateTimeField::new('expireTime', '过期时间')
-            ->setHelp('黑名单过期时间，可选')
+        yield BooleanField::new('fixed', '固定排名')
+            ->setHelp('是否为固定排名，不参与自动计算')
+        ;
+
+        yield TextField::new('recommendThumb', '推荐人头像')
+            ->setHelp('推荐人头像地址，可选，最多255个字符')
             ->hideOnIndex()
         ;
 
-        yield TextareaField::new('comment', '备注')
-            ->setHelp('额外备注信息，可选')
+        yield TextareaField::new('recommendReason', '推荐理由')
+            ->setHelp('推荐理由详细描述，可选')
             ->hideOnIndex()
         ;
 
         yield BooleanField::new('valid', '是否有效')
-            ->setHelp('黑名单是否有效')
+            ->setHelp('排行榜项目是否有效')
         ;
 
         yield DateTimeField::new('createTime', '创建时间')
@@ -98,7 +107,7 @@ final class UserRankingBlacklistCrudController extends AbstractCrudController
             ->add('list')
             ->add('userId')
             ->add('valid')
-            ->add('unblockTime')
+            ->add('number')
         ;
     }
 }

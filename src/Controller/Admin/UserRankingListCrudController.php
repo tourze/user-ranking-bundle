@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UserRankingBundle\Controller;
+namespace UserRankingBundle\Controller\Admin;
 
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminCrud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;

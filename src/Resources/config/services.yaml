@@ -12,8 +12,6 @@ services:
     resource: '../../EventSubscriber/'
   UserRankingBundle\MessageHandler\:
     resource: '../../MessageHandler/'
-  UserRankingBundle\Procedure\:
-    resource: '../../Procedure/'
   UserRankingBundle\Repository\:
     resource: '../../Repository/'
   UserRankingBundle\Service\:
